@@ -1,0 +1,97 @@
+.install-pwa-banner {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 480px;
+  background: rgba(30, 30, 30, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #FFBC0D;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 999;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, 40px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+.install-pwa-close-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  color: #A0A0A0;
+  border: none;
+  font-size: 14px;
+  padding: 4px 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.install-pwa-close-button:hover {
+  color: #FFFFFF;
+}
+
+.install-pwa-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.install-pwa-icon {
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2A2A2A;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+
+.install-pwa-text h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 2px;
+}
+
+.install-pwa-text p {
+  font-size: 0.78rem;
+  color: #B0B0B0;
+  line-height: 1.2;
+}
+
+.install-pwa-button {
+  background-color: #FFBC0D;
+  color: #121212;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.install-pwa-button:active {
+  transform: scale(0.96);
+}

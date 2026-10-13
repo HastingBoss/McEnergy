@@ -1,0 +1,19 @@
+{
+  "name": "McDonald's Mantenimiento & Inventario",
+  "short_name": "McD Mant.",
+  "description": "Control de consumo eléctrico y gestión de stock con lector QR para técnicos de McDonald's.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#DA291C",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

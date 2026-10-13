@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #DA291C;
+  --color-secondary: #FFBC0D;
+  --color-bg-dark: #121212;
+  --color-surface-dark: #1E1E1E;
+  --color-text-main: #FFFFFF;
+  --color-text-muted: #A0A0A0;
+  --color-border: #2D2D2D;
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-main);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Form controls & inputs */
+input, select, textarea, button {
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+input, select {
+  background-color: #262626;
+  border: 1px solid var(--color-border);
+  color: #FFFFFF;
+  border-radius: 8px;
+  padding: 10px 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s ease;
+}
+
+input:focus, select:focus {
+  border-color: var(--color-secondary);
+}
+
+/* Touch friendly button base */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+}
+
+.btn-primary:hover {
+  background-color: #B91C1C;
+}
+
+.btn-accent {
+  background-color: var(--color-secondary);
+  color: #121212;
+}
+
+.btn-accent:hover {
+  background-color: #E5A80A;
+}
+
+.btn-secondary {
+  background-color: #2A2A2A;
+  color: #E0E0E0;
+}
+
+.btn-secondary:hover {
+  background-color: #383838;
+}
+
+/* Card container */
+.card {
+  background-color: var(--color-surface-dark);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+}

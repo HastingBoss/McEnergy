@@ -1,0 +1,15 @@
+{
+  "name": "mcd-pwa-maintenance",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PWA de Mantenimiento e Inventario para Locales de McDonald's",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "lint": "npm run lint --prefix frontend"
+  },
+  "keywords": ["pwa", "maintenance", "inventory", "supabase", "qr-scanner", "mcdonalds"],
+  "author": "",
+  "license": "MIT"
+}
