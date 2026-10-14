@@ -48,7 +48,7 @@ export default function InstallPWA() {
         <div className="install-pwa-icon">⚡</div>
         <div className="install-pwa-text">
           <h3>Instalar McEnergy</h3>
-          <p>Acceso rápido y registro diario sin conexión.</p>
+          <p>Acceso directo desde la pantalla de inicio.</p>
         </div>
       </div>
       <div className="install-pwa-actions">
