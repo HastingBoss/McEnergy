@@ -14,8 +14,8 @@ export default function App() {
         <main style={{ flex: 1 }}>
           <Routes>
             <Route path="/" element={<MeterReading />} />
-            <Route path="/comparison" element={<ConsumptionComparison />} />
             <Route path="/dashboard" element={<GlobalDashboard />} />
+            <Route path="/comparison" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

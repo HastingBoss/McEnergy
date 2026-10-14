@@ -8,7 +8,7 @@ const MONTH_NAMES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
-export default function ConsumptionComparison() {
+export default function ConsumptionComparison({ isEmbedded = false }) {
   const { stores, currentStore, setCurrentStore } = useStore();
 
   const now = new Date();
@@ -91,20 +91,33 @@ export default function ConsumptionComparison() {
   });
 
   return (
-    <div style={{ padding: '16px', maxWidth: '800px', margin: '0 auto', paddingBottom: '90px' }}>
-      {/* Título y Selector de Mes/Año */}
+    <div style={isEmbedded ? { marginTop: '4px' } : { padding: '16px', maxWidth: '800px', margin: '0 auto', paddingBottom: '90px' }}>
+      {/* Título y Selector de Local/Mes/Año */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
             <TrendingUp color="#FFBC0D" size={24} />
-            Comparativa de Consumo Anual
+            Comparativa Anual ({currentStore?.code})
           </h2>
           <p style={{ fontSize: '0.8rem', color: '#A0A0A0', margin: '2px 0 0 0' }}>
             {currentStore?.name} • {selectedYear} vs {selectedYear - 1}
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <select
+            value={currentStore?.id || ''}
+            onChange={(e) => {
+              const s = stores.find((st) => st.id === e.target.value);
+              if (s) setCurrentStore(s);
+            }}
+            style={{ width: 'auto', padding: '6px 10px', fontSize: '0.85rem' }}
+          >
+            {stores.map((st) => (
+              <option key={st.id} value={st.id}>{st.name} ({st.code})</option>
+            ))}
+          </select>
+
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}

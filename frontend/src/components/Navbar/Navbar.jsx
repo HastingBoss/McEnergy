@@ -201,31 +201,13 @@ export default function Navbar() {
             gap: '4px',
             color: isActive ? '#FFBC0D' : '#888888',
             textDecoration: 'none',
-            fontSize: '0.72rem',
-            fontWeight: isActive ? '700' : '400',
+            fontSize: '0.78rem',
+            fontWeight: isActive ? '800' : '500',
             flex: 1
           })}
         >
-          <Zap size={20} />
+          <Zap size={22} />
           <span>Lectura</span>
-        </NavLink>
-
-        <NavLink
-          to="/comparison"
-          style={({ isActive }) => ({
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '4px',
-            color: isActive ? '#FFBC0D' : '#888888',
-            textDecoration: 'none',
-            fontSize: '0.72rem',
-            fontWeight: isActive ? '700' : '400',
-            flex: 1
-          })}
-        >
-          <TrendingUp size={20} />
-          <span>Comparativa</span>
         </NavLink>
 
         <NavLink
@@ -237,13 +219,13 @@ export default function Navbar() {
             gap: '4px',
             color: isActive ? '#FFBC0D' : '#888888',
             textDecoration: 'none',
-            fontSize: '0.72rem',
-            fontWeight: isActive ? '700' : '400',
+            fontSize: '0.78rem',
+            fontWeight: isActive ? '800' : '500',
             flex: 1
           })}
         >
-          <BarChart3 size={20} />
-          <span>Red Global</span>
+          <BarChart3 size={22} />
+          <span>Red & Comparativa</span>
         </NavLink>
       </nav>
     </>
