@@ -45,6 +45,7 @@ RETURNS TRIGGER AS $$
 DECLARE
     v_multiplier NUMERIC(10, 4);
     v_prev_reading RECORD;
+    v_day_diff INT;
 BEGIN
     -- Obtener multiplicador configurado en el local si no se especificó o es por defecto
     IF NEW.applied_multiplier IS NULL OR NEW.applied_multiplier = 1.0000 THEN
@@ -59,25 +60,37 @@ BEGIN
     NEW.kwh_reading := ROUND(NEW.display_value * NEW.applied_multiplier, 3);
     NEW.updated_at := now();
 
-    -- Cálculo de consumo frente a la lectura previa cronológica
+    -- Si está marcada como reset / lectura base
     IF NEW.is_reset THEN
         NEW.calculated_consumption := NULL;
         NEW.reading_days := 1;
-    ELSE
-        SELECT reading_date, kwh_reading INTO v_prev_reading
-        FROM public.meter_readings
-        WHERE store_id = NEW.store_id
-          AND reading_date < NEW.reading_date
-        ORDER BY reading_date DESC
-        LIMIT 1;
+        RETURN NEW;
+    END IF;
 
-        IF v_prev_reading IS NOT NULL THEN
-            NEW.calculated_consumption := GREATEST(0, ROUND(NEW.kwh_reading - v_prev_reading.kwh_reading, 3));
-            NEW.reading_days := GREATEST(1, NEW.reading_date - v_prev_reading.reading_date);
-        ELSE
+    -- Cálculo de consumo frente a la lectura previa cronológica
+    SELECT reading_date, kwh_reading INTO v_prev_reading
+    FROM public.meter_readings
+    WHERE store_id = NEW.store_id
+      AND reading_date < NEW.reading_date
+    ORDER BY reading_date DESC
+    LIMIT 1;
+
+    IF v_prev_reading IS NOT NULL THEN
+        v_day_diff := NEW.reading_date - v_prev_reading.reading_date;
+
+        -- Si el salto es mayor a 4 días (ej. semanas sin cargar), se toma como nueva lectura base
+        IF v_day_diff > 4 THEN
+            NEW.is_reset := true;
             NEW.calculated_consumption := NULL;
             NEW.reading_days := 1;
+        ELSE
+            NEW.calculated_consumption := GREATEST(0, ROUND(NEW.kwh_reading - v_prev_reading.kwh_reading, 3));
+            NEW.reading_days := GREATEST(1, v_day_diff);
         END IF;
+    ELSE
+        NEW.is_reset := true;
+        NEW.calculated_consumption := NULL;
+        NEW.reading_days := 1;
     END IF;
 
     RETURN NEW;

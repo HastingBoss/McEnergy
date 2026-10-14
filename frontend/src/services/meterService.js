@@ -6,8 +6,8 @@ export function calculateKwh(displayValue, multiplier) {
   return Number((val * mult).toFixed(3));
 }
 
-export function calculateConsumption(currentKwh, prevKwh, isReset = false) {
-  if (isReset || prevKwh === null || prevKwh === undefined) {
+export function calculateConsumption(currentKwh, prevKwh, isReset = false, dayDiff = 1) {
+  if (isReset || prevKwh === null || prevKwh === undefined || dayDiff > 4) {
     return null;
   }
   const diff = currentKwh - prevKwh;
@@ -118,8 +118,20 @@ export async function saveMeterReading({
     .order('reading_date', { ascending: false })
     .limit(1);
 
+  let effectiveReset = isReset;
+  let dayDiff = 1;
+
+  if (previousEntries && previousEntries[0]) {
+    const prevDate = new Date(previousEntries[0].reading_date);
+    const currDate = new Date(readingDate);
+    dayDiff = Math.max(1, Math.round((currDate - prevDate) / (1000 * 60 * 60 * 24)));
+    if (dayDiff > 4) {
+      effectiveReset = true;
+    }
+  }
+
   const prevKwh = previousEntries && previousEntries[0] ? previousEntries[0].kwh_reading : null;
-  const calculatedConsumption = calculateConsumption(kwhReading, prevKwh, isReset);
+  const calculatedConsumption = calculateConsumption(kwhReading, prevKwh, effectiveReset, dayDiff);
 
   const payload = {
     store_id: storeId,
@@ -127,7 +139,7 @@ export async function saveMeterReading({
     display_value: numDisplay,
     applied_multiplier: numMult,
     kwh_reading: kwhReading,
-    is_reset: isReset,
+    is_reset: effectiveReset,
     calculated_consumption: calculatedConsumption,
     notes: notes || null,
     technician_name: technicianName || null,
