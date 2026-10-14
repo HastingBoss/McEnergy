@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, ArrowDownRight, ArrowUpRight, Calendar, Building2, RefreshCw } from 'lucide-react';
+import { TrendingUp, ArrowDownRight, ArrowUpRight, Calendar, Building2, RefreshCw, FileSpreadsheet } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { fetchMonthlyComparison } from '../../services/meterService';
+import { downloadReportFile } from '../../services/reportExportService';
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -17,6 +18,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
   const [currentYearData, setCurrentYearData] = useState([]);
   const [prevYearData, setPrevYearData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (currentStore?.id) {
@@ -150,6 +152,41 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
             title="Actualizar datos"
           >
             <RefreshCw size={16} />
+          </button>
+
+          <button
+            onClick={async () => {
+              setIsExporting(true);
+              try {
+                await downloadReportFile({
+                  year: selectedYear,
+                  month: selectedMonth,
+                  selectedStoreId: currentStore?.id
+                });
+              } catch (err) {
+                console.error('Error al exportar:', err);
+                alert('Error al exportar Excel: ' + err.message);
+              } finally {
+                setIsExporting(false);
+              }
+            }}
+            disabled={isExporting}
+            style={{
+              backgroundColor: '#262626',
+              border: '1px solid #383838',
+              color: '#22c55e',
+              padding: '6px 10px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '0.82rem',
+              fontWeight: '700'
+            }}
+            title="Exportar este mes a Excel (.xlsx)"
+          >
+            <FileSpreadsheet size={16} />
+            {isExporting ? '...' : 'Excel'}
           </button>
         </div>
       </div>
