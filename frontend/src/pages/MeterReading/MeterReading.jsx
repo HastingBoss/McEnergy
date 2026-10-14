@@ -399,7 +399,7 @@ export default function MeterReading() {
         )}
       </div>
 
-      {/* PARTE INFERIOR: SOLO ÚLTIMA CARGA */}
+      {/* PARTE INFERIOR: REFERENCIA DEL DÍA ANTERIOR */}
       <div style={{
         backgroundColor: '#1A1A1A',
         border: '1px solid #282828',
@@ -409,18 +409,20 @@ export default function MeterReading() {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <span style={{ fontSize: '0.88rem', color: '#A0A0A0', fontWeight: '600' }}>
-          Última carga:
-        </span>
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '1.35rem', fontWeight: '900', color: '#FFBC0D', fontFamily: 'monospace' }}>
-            {lastReading ? lastReading.display_value : '—'}
+        <div>
+          <span style={{ fontSize: '0.88rem', color: '#A0A0A0', fontWeight: '600', display: 'block' }}>
+            Lectura día anterior:
           </span>
-          {lastReading?.reading_date && (
-            <span style={{ fontSize: '0.72rem', color: '#666666', display: 'block' }}>
-              ({lastReading.reading_date})
+          {previousReading?.reading_date && (
+            <span style={{ fontSize: '0.72rem', color: '#666666', marginTop: '2px', display: 'block' }}>
+              Fecha: {previousReading.reading_date}
             </span>
           )}
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <span style={{ fontSize: '1.4rem', fontWeight: '900', color: '#FFBC0D', fontFamily: 'monospace' }}>
+            {previousReading ? previousReading.display_value : 'Sin registro previo'}
+          </span>
         </div>
       </div>
 
