@@ -281,8 +281,8 @@ AR3, 2026-10-12, 888500.0`}
             </span>
           </div>
 
-          <div style={{ maxHeight: '240px', overflowY: 'auto', border: '1px solid #262626', borderRadius: '8px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+          <div style={{ maxHeight: '250px', overflowY: 'auto', overflowX: 'auto', border: '1px solid #262626', borderRadius: '8px' }}>
+            <table style={{ width: '100%', minWidth: '460px', borderCollapse: 'collapse', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
               <thead>
                 <tr style={{ backgroundColor: '#1A1A1A', color: '#888888', textAlign: 'left', borderBottom: '1px solid #333' }}>
                   <th style={{ padding: '8px' }}>Línea</th>
