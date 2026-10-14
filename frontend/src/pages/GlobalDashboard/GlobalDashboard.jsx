@@ -13,11 +13,13 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Download,
-  CheckCircle2
+  CheckCircle2,
+  UploadCloud
 } from 'lucide-react';
 import { getPreviousYearDate } from '../../services/meterService';
 import { useStore } from '../../context/StoreContext';
 import ConsumptionComparison from '../ConsumptionComparison/ConsumptionComparison';
+import BatchImport from '../../components/BatchImport/BatchImport';
 import { downloadReportFile } from '../../services/reportExportService';
 
 const MONTH_NAMES = [
@@ -290,6 +292,29 @@ export default function GlobalDashboard() {
         </button>
 
         <button
+          onClick={() => setActiveTab('batch')}
+          style={{
+            flex: 1,
+            padding: '10px 14px',
+            borderRadius: '8px',
+            fontSize: '0.88rem',
+            fontWeight: '700',
+            backgroundColor: activeTab === 'batch' ? '#FFBC0D' : 'transparent',
+            color: activeTab === 'batch' ? '#121212' : '#A0A0A0',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            transition: 'all 0.2s ease',
+            cursor: 'pointer'
+          }}
+        >
+          <UploadCloud size={16} />
+          Carga Masiva
+        </button>
+
+        <button
           onClick={() => setActiveTab('export')}
           style={{
             flex: 1,
@@ -502,7 +527,12 @@ export default function GlobalDashboard() {
         <ConsumptionComparison isEmbedded={true} />
       )}
 
-      {/* VISTA 3: EXPORTACIÓN DE INFORMES EXCEL */}
+      {/* VISTA 3: CARGA MASIVA POR LOTE DE TEXTO */}
+      {activeTab === 'batch' && (
+        <BatchImport onImportSuccess={loadDashboardData} />
+      )}
+
+      {/* VISTA 4: EXPORTACIÓN DE INFORMES EXCEL */}
       {activeTab === 'export' && (
         <div>
           <div style={{ marginBottom: '16px' }}>
