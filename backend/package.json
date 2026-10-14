@@ -1,7 +1,7 @@
 {
-  "name": "mcd-pwa-backend",
+  "name": "mcenergy-backend",
   "version": "1.0.0",
-  "description": "Backend API for McDonald's Maintenance PWA",
+  "description": "Backend API para McEnergy PWA",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",

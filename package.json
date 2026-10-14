@@ -1,15 +1,15 @@
 {
-  "name": "mcd-pwa-maintenance",
+  "name": "mcenergy-pwa",
   "version": "1.0.0",
   "private": true,
-  "description": "PWA de Mantenimiento e Inventario para Locales de McDonald's",
+  "description": "PWA Mobile-First para Control Eléctrico, Factor de Transformadores de Corriente (TC) y Comparativa Interanual en locales McDonald's",
   "scripts": {
     "dev": "npm run dev --prefix frontend",
     "dev:backend": "npm run dev --prefix backend",
     "build": "npm run build --prefix frontend",
     "lint": "npm run lint --prefix frontend"
   },
-  "keywords": ["pwa", "maintenance", "inventory", "supabase", "qr-scanner", "mcdonalds"],
+  "keywords": ["pwa", "energy", "electricity", "meter-readings", "supabase", "react", "mcdonalds"],
   "author": "",
   "license": "MIT"
 }

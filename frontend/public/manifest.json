@@ -1,7 +1,7 @@
 {
-  "name": "McDonald's Mantenimiento & Inventario",
-  "short_name": "McD Mant.",
-  "description": "Control de consumo eléctrico y gestión de stock con lector QR para técnicos de McDonald's.",
+  "name": "McEnergy — McDonald's Control Eléctrico",
+  "short_name": "McEnergy",
+  "description": "Registro diario de medidores eléctricos, factor multiplicador TC y comparativa interanual para locales McDonald's.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#121212",
