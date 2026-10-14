@@ -110,6 +110,7 @@ DECLARE
     v_next_kwh NUMERIC(16, 3);
     v_next_date DATE;
     v_next_is_reset BOOLEAN;
+    v_day_diff INT;
 BEGIN
     SELECT id, kwh_reading, reading_date, is_reset
     INTO v_next_id, v_next_kwh, v_next_date, v_next_is_reset
@@ -119,12 +120,24 @@ BEGIN
     ORDER BY reading_date ASC
     LIMIT 1;
 
-    IF v_next_id IS NOT NULL AND NOT v_next_is_reset THEN
-        UPDATE public.meter_readings
-        SET calculated_consumption = GREATEST(0, ROUND(v_next_kwh - NEW.kwh_reading, 3)),
-            reading_days = GREATEST(1, v_next_date - NEW.reading_date),
-            updated_at = now()
-        WHERE id = v_next_id;
+    IF v_next_id IS NOT NULL THEN
+        v_day_diff := v_next_date - NEW.reading_date;
+
+        IF v_day_diff <= 4 THEN
+            UPDATE public.meter_readings
+            SET calculated_consumption = GREATEST(0, ROUND(v_next_kwh - NEW.kwh_reading, 3)),
+                reading_days = GREATEST(1, v_day_diff),
+                is_reset = false,
+                updated_at = now()
+            WHERE id = v_next_id;
+        ELSE
+            UPDATE public.meter_readings
+            SET calculated_consumption = NULL,
+                reading_days = 1,
+                is_reset = true,
+                updated_at = now()
+            WHERE id = v_next_id;
+        END IF;
     END IF;
 
     RETURN NEW;
