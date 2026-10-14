@@ -147,12 +147,7 @@ export default function MeterReading() {
     const text = formatWhatsAppReport({
       store: currentStore,
       readingDate: todayStr,
-      displayValue: todayReading.display_value,
-      kwhReading: todayReading.kwh_reading,
-      consumption: todayReading.calculated_consumption,
-      prevYearConsumption: prevYearReading?.calculated_consumption,
-      technicianName: todayReading.technician_name || 'Técnico',
-      notes: todayReading.notes || ''
+      displayValue: todayReading.display_value
     });
 
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');

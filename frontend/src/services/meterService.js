@@ -159,41 +159,17 @@ export async function saveMeterReading({
 export function formatWhatsAppReport({
   store,
   readingDate,
-  displayValue,
-  kwhReading,
-  consumption,
-  prevYearConsumption,
-  technicianName,
-  notes
+  displayValue
 }) {
   const [y, m, d] = readingDate.split('-');
   const formattedDate = `${d}/${m}/${y}`;
-  const prevYearDate = `${d}/${m}/${Number(y) - 1}`;
-
-  let compText = '';
-  if (prevYearConsumption !== null && prevYearConsumption !== undefined) {
-    const diff = consumption - prevYearConsumption;
-    const pct = prevYearConsumption > 0 ? ((diff / prevYearConsumption) * 100).toFixed(1) : '0';
-    const sign = diff > 0 ? '+' : '';
-    const icon = diff <= 0 ? '🟢' : '🔴';
-    compText = `\n${icon} Comparativa vs ${prevYearDate}: ${sign}${diff.toFixed(2)} kWh (${sign}${pct}%)`;
-  }
-
-  const multText = store.meter_multiplier && store.meter_multiplier !== 1
-    ? `\n⚙️ Medidor: ${store.meter_model || 'Standard'} (TC x${store.meter_multiplier})`
-    : `\n⚙️ Medidor: ${store.meter_model || 'Lectura Directa'}`;
-
-  const notesText = notes ? `\n📝 Observaciones: ${notes}` : '';
+  const storeName = store.name.toLowerCase().includes("mcdonald's")
+    ? store.name
+    : `McDonald's ${store.name}`;
 
   return (
-    `*Reporte Eléctrico - McDonald's ${store.name}*\n` +
+    `*Reporte Eléctrico - ${storeName}*\n` +
     `📅 Fecha: ${formattedDate} (12:00 PM)\n` +
-    `🔢 Display: ${displayValue} [${store.display_indicator || 'kWh'}]` +
-    multText +
-    `\n⚡ Total acumulado: ${kwhReading.toLocaleString('es-AR')} kWh\n` +
-    `📊 Consumo 24h: *${consumption !== null ? consumption.toLocaleString('es-AR') : 'Primer registro'} kWh*` +
-    compText +
-    (technicianName ? `\n👨‍🔧 Técnico: ${technicianName}` : '') +
-    notesText
+    `🔢 Display: ${displayValue}`
   );
 }
