@@ -167,7 +167,7 @@ export default function Navbar() {
                         </span>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#888888', marginTop: '3px' }}>
-                        Medidor: {s.meter_model || 'Directo'} {s.meter_multiplier && s.meter_multiplier !== 1 ? `(TC x${s.meter_multiplier})` : ''} • Display: {s.display_indicator || 'kWh'}
+                        Local de la red ({s.code})
                       </div>
                     </div>
                     {isSelected && <Check size={18} color="#FFBC0D" />}

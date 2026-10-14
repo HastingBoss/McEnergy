@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { BarChart3, AlertOctagon, TrendingUp, Calendar, ArrowDownRight, ArrowUpRight, Zap, RefreshCw } from 'lucide-react';
+import {
+  BarChart3,
+  Calendar,
+  ArrowDownRight,
+  ArrowUpRight,
+  RefreshCw,
+  Lock,
+  Unlock,
+  KeyRound,
+  AlertCircle
+} from 'lucide-react';
 import { getPreviousYearDate } from '../../services/meterService';
 import { useStore } from '../../context/StoreContext';
 
@@ -11,11 +21,56 @@ export default function GlobalDashboard() {
   const [prevYearReadings, setPrevYearReadings] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Estado de autenticación para Coordinador / Admin
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('mcd_dashboard_unlocked') === 'true';
+  });
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(null);
+  const [verifyingPin, setVerifyingPin] = useState(false);
+
   const prevYearDate = getPreviousYearDate(selectedDate);
 
   useEffect(() => {
-    loadDashboardData();
-  }, [selectedDate]);
+    if (isAuthenticated) {
+      loadDashboardData();
+    }
+  }, [selectedDate, isAuthenticated]);
+
+  const handleVerifyPin = async (e) => {
+    e.preventDefault();
+    if (!pinInput.trim()) return;
+
+    setVerifyingPin(true);
+    setPinError(null);
+
+    try {
+      const { data: isValid, error } = await supabase.rpc('verify_dashboard_pin', {
+        pin_input: pinInput.trim()
+      });
+
+      if (error) throw error;
+
+      if (isValid) {
+        sessionStorage.setItem('mcd_dashboard_unlocked', 'true');
+        setIsAuthenticated(true);
+        setPinInput('');
+      } else {
+        setPinError('Clave incorrecta. Acceso denegado.');
+      }
+    } catch (err) {
+      console.error('Error al verificar clave:', err);
+      setPinError('Error de conexión al validar clave.');
+    } finally {
+      setVerifyingPin(false);
+    }
+  };
+
+  const handleLockDashboard = () => {
+    sessionStorage.removeItem('mcd_dashboard_unlocked');
+    setIsAuthenticated(false);
+    setPinInput('');
+  };
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -40,6 +95,113 @@ export default function GlobalDashboard() {
     }
   };
 
+  // PANTALLA DE BLOQUEO / INGRESO DE CLAVE
+  if (!isAuthenticated) {
+    return (
+      <div style={{
+        padding: '16px',
+        maxWidth: '420px',
+        margin: '40px auto 0',
+        paddingBottom: '90px'
+      }}>
+        <div style={{
+          backgroundColor: '#1E1E1E',
+          border: '1px solid #333333',
+          borderRadius: '16px',
+          padding: '28px 20px',
+          textAlign: 'center',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.6)'
+        }}>
+          <div style={{
+            backgroundColor: '#262626',
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px',
+            color: '#FFBC0D'
+          }}>
+            <Lock size={28} />
+          </div>
+
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', margin: '0 0 6px' }}>
+            Acceso al Dashboard
+          </h2>
+          <p style={{ fontSize: '0.85rem', color: '#888888', margin: '0 0 20px' }}>
+            Ingresa la clave de Coordinador o Administrador para acceder al consolidado de la red.
+          </p>
+
+          <form onSubmit={handleVerifyPin}>
+            <div style={{ position: 'relative', marginBottom: '14px' }}>
+              <input
+                type="password"
+                inputMode="numeric"
+                required
+                autoFocus
+                placeholder="Ingresar clave..."
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value)}
+                disabled={verifyingPin}
+                style={{
+                  width: '100%',
+                  padding: '14px 14px',
+                  backgroundColor: '#0A0A0A',
+                  border: pinError ? '2px solid #ef4444' : '2px solid #FFBC0D',
+                  borderRadius: '10px',
+                  color: '#FFFFFF',
+                  fontSize: '1.2rem',
+                  fontWeight: '700',
+                  textAlign: 'center',
+                  letterSpacing: '3px',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {pinError && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                color: '#f87171',
+                fontSize: '0.82rem',
+                marginBottom: '14px'
+              }}>
+                <AlertCircle size={15} />
+                <span>{pinError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={verifyingPin || !pinInput}
+              style={{
+                width: '100%',
+                backgroundColor: '#FFBC0D',
+                color: '#121212',
+                padding: '14px',
+                borderRadius: '10px',
+                fontSize: '1rem',
+                fontWeight: '800',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <KeyRound size={18} />
+              {verifyingPin ? 'Verificando...' : 'Ingresar'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // DASHBOARD DESBLOQUEADO
   const totalCurrent = readings.reduce((acc, curr) => acc + (parseFloat(curr.calculated_consumption) || 0), 0);
   const totalPrev = prevYearReadings.reduce((acc, curr) => acc + (parseFloat(curr.calculated_consumption) || 0), 0);
   const netDiff = totalCurrent - totalPrev;
@@ -76,6 +238,13 @@ export default function GlobalDashboard() {
             title="Recargar"
           >
             <RefreshCw size={15} />
+          </button>
+          <button
+            onClick={handleLockDashboard}
+            style={{ backgroundColor: '#262626', border: '1px solid #383838', color: '#A0A0A0', padding: '6px 10px', borderRadius: '8px' }}
+            title="Bloquear acceso"
+          >
+            <Unlock size={15} />
           </button>
         </div>
       </div>
@@ -171,16 +340,11 @@ export default function GlobalDashboard() {
                   <span style={{ fontSize: '0.7rem', color: '#A0A0A0', backgroundColor: '#262626', padding: '1px 6px', borderRadius: '4px' }}>
                     {store.code}
                   </span>
-                  {store.meter_multiplier && store.meter_multiplier !== 1 && (
-                    <span style={{ fontSize: '0.7rem', color: '#38BDF8', backgroundColor: '#1E293B', padding: '1px 6px', borderRadius: '4px' }}>
-                      x{store.meter_multiplier}
-                    </span>
-                  )}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#888888', marginTop: '3px' }}>
                   {hasReported
                     ? `Display: ${currentReading.display_value} • ${currentReading.technician_name ? `Técnico: ${currentReading.technician_name}` : 'Registrado'}`
-                    : 'Pendiente de carga (12:00 PM)'}
+                    : 'Pendiente de carga'}
                 </div>
               </div>
 

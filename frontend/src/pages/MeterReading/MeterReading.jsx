@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
-  Zap,
   Building2,
   CheckCircle2,
   AlertTriangle,
   Edit3,
   UploadCloud,
   Send,
-  Clock,
-  ArrowDownRight,
-  ArrowUpRight,
   HelpCircle
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
@@ -35,7 +31,6 @@ export default function MeterReading() {
   const [todayReading, setTodayReading] = useState(null);
   const [previousReading, setPreviousReading] = useState(null);
   const [prevYearReading, setPrevYearReading] = useState(null);
-  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
 
@@ -62,7 +57,6 @@ export default function MeterReading() {
         fetchReadingForDate(currentStore.id, getPreviousYearDate(todayStr))
       ]);
 
-      setHistory(readingsList);
       setTodayReading(currentEntry);
       setPrevYearReading(lastYearEntry);
 
@@ -98,17 +92,6 @@ export default function MeterReading() {
   };
 
   const numericVal = parseFloat(displayValue) || 0;
-  const currentKwh = calculateKwh(numericVal, multiplier);
-  const prevKwh = previousReading ? previousReading.kwh_reading : null;
-  const estimatedConsumption = calculateConsumption(currentKwh, prevKwh, false);
-
-  const lastYearConsumption = prevYearReading?.calculated_consumption ?? null;
-  const diffVsLastYear = (estimatedConsumption !== null && lastYearConsumption !== null)
-    ? estimatedConsumption - lastYearConsumption
-    : null;
-  const diffVsLastYearPct = (diffVsLastYear !== null && lastYearConsumption > 0)
-    ? ((diffVsLastYear / lastYearConsumption) * 100).toFixed(1)
-    : null;
 
   // Acción Cargar -> abre confirmación
   const handleOpenUploadConfirm = (e) => {
@@ -138,7 +121,7 @@ export default function MeterReading() {
 
       setTodayReading(saved);
       setIsEditing(false);
-      setStatusMessage({ type: 'success', text: `Lectura registrada exitosamente: ${numericVal} en ${currentStore.name}.` });
+      setStatusMessage({ type: 'success', text: `Lectura registrada: ${numericVal} en ${currentStore.name}.` });
       await loadDataForCurrentStore();
     } catch (err) {
       setStatusMessage({ type: 'error', text: err.message || 'Error al guardar la lectura.' });
@@ -147,7 +130,6 @@ export default function MeterReading() {
     }
   };
 
-  // Acción Editar -> abre confirmación
   const handleOpenEditConfirm = () => {
     setShowConfirmEdit(true);
   };
@@ -168,7 +150,7 @@ export default function MeterReading() {
       displayValue: todayReading.display_value,
       kwhReading: todayReading.kwh_reading,
       consumption: todayReading.calculated_consumption,
-      prevYearConsumption: lastYearConsumption,
+      prevYearConsumption: prevYearReading?.calculated_consumption,
       technicianName: todayReading.technician_name || 'Técnico',
       notes: todayReading.notes || ''
     });
@@ -177,10 +159,11 @@ export default function MeterReading() {
   };
 
   const isRegisteredState = Boolean(todayReading) && !isEditing;
+  const lastReading = previousReading || todayReading;
 
   return (
     <div style={{ padding: '16px', maxWidth: '580px', margin: '0 auto', paddingBottom: '90px' }}>
-      {/* Selector de los 5 Locales */}
+      {/* Selector de Local */}
       <div style={{ marginBottom: '14px' }}>
         <label style={{ fontSize: '0.8rem', color: '#A0A0A0', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
           <Building2 size={15} color="#FFBC0D" /> Local Seleccionado
@@ -196,12 +179,14 @@ export default function MeterReading() {
             border: '2px solid #FFBC0D',
             color: '#FFFFFF',
             borderRadius: '10px',
-            padding: '12px 14px'
+            padding: '12px 14px',
+            width: '100%',
+            outline: 'none'
           }}
         >
           {stores.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name} ({s.code}) — {s.meter_model || 'Medidor'} {s.meter_multiplier > 1 ? `[TC x${s.meter_multiplier}]` : ''}
+              {s.name} ({s.code})
             </option>
           ))}
         </select>
@@ -232,35 +217,31 @@ export default function MeterReading() {
         borderRadius: '16px',
         padding: '20px 18px',
         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-        marginBottom: '20px',
-        position: 'relative'
+        marginBottom: '16px'
       }}>
-        {/* Cabecera Técnica del HUD */}
+        {/* Cabecera del HUD */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #262626', paddingBottom: '10px' }}>
           <div>
             <span style={{ fontSize: '0.72rem', color: '#888888', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              HUD TELEMETRÍA ELÉCTRICA
+              REGISTRO DIARIO
             </span>
-            <div style={{ fontSize: '0.95rem', fontWeight: '800', color: '#FFFFFF' }}>
-              {currentStore?.code} • {currentStore?.display_indicator || 'kWh'}
+            <div style={{ fontSize: '1rem', fontWeight: '800', color: '#FFFFFF' }}>
+              {currentStore?.name}
             </div>
           </div>
-
-          <div style={{ textAlign: 'right' }}>
-            <span style={{
-              backgroundColor: '#262626',
-              color: multiplier > 1 ? '#38BDF8' : '#A0A0A0',
-              padding: '3px 8px',
-              borderRadius: '6px',
-              fontSize: '0.75rem',
-              fontWeight: '700'
-            }}>
-              {multiplier > 1 ? `TC x${multiplier}` : 'Directo x1'}
-            </span>
-          </div>
+          <span style={{
+            backgroundColor: '#262626',
+            color: '#FFBC0D',
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontSize: '0.85rem',
+            fontWeight: '800'
+          }}>
+            {currentStore?.code}
+          </span>
         </div>
 
-        {/* ESTADO 1: LECTURA YA CARGADA EN EL DÍA (VISOR LCD BLOQUEADO) */}
+        {/* ESTADO 1: LECTURA YA CARGADA EN EL DÍA */}
         {isRegisteredState ? (
           <div>
             <div style={{
@@ -268,27 +249,23 @@ export default function MeterReading() {
               alignItems: 'center',
               gap: '6px',
               color: '#22c55e',
-              fontSize: '0.82rem',
+              fontSize: '0.85rem',
               fontWeight: '700',
-              marginBottom: '8px'
+              marginBottom: '10px'
             }}>
-              <CheckCircle2 size={16} /> Lectura del día registrada
+              <CheckCircle2 size={16} /> Lectura de hoy registrada
             </div>
 
-            {/* Display LCD del valor del día */}
             <div style={{
               backgroundColor: '#0A0A0A',
               border: '1px solid #333333',
               borderRadius: '12px',
-              padding: '16px',
+              padding: '18px',
               textAlign: 'center',
               marginBottom: '16px'
             }}>
-              <span style={{ fontSize: '0.75rem', color: '#888888', display: 'block', marginBottom: '4px' }}>
-                VALOR DEL DÍA EN EL MEDIDOR
-              </span>
               <div style={{
-                fontSize: '2.5rem',
+                fontSize: '2.8rem',
                 fontWeight: '900',
                 color: '#FFBC0D',
                 fontFamily: 'monospace',
@@ -296,67 +273,11 @@ export default function MeterReading() {
               }}>
                 {todayReading.display_value}
               </div>
-              <span style={{ fontSize: '0.8rem', color: '#A0A0A0' }}>
-                {currentStore?.display_indicator || 'kWh'}
+              <span style={{ fontSize: '0.75rem', color: '#888888' }}>
+                Registrado para hoy ({todayReading.reading_date})
               </span>
             </div>
 
-            {/* Métricas Calculadas */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '10px',
-              marginBottom: '18px'
-            }}>
-              <div style={{ backgroundColor: '#1E1E1E', padding: '10px 12px', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.72rem', color: '#888888' }}>Total Acumulado</span>
-                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#FFFFFF', marginTop: '2px' }}>
-                  {todayReading.kwh_reading ? todayReading.kwh_reading.toLocaleString('es-AR') : '-'} <span style={{ fontSize: '0.7rem' }}>kWh</span>
-                </div>
-              </div>
-
-              <div style={{ backgroundColor: '#1E1E1E', padding: '10px 12px', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.72rem', color: '#888888' }}>Consumo 24h</span>
-                <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#FFBC0D', marginTop: '2px' }}>
-                  {todayReading.calculated_consumption !== null ? `+${todayReading.calculated_consumption.toLocaleString('es-AR')}` : 'Base'} <span style={{ fontSize: '0.7rem' }}>kWh</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Comparativa con Mismo Día Año Anterior */}
-            {lastYearConsumption !== null && (
-              <div style={{
-                backgroundColor: '#1E1E1E',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                marginBottom: '18px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                fontSize: '0.82rem'
-              }}>
-                <span style={{ color: '#A0A0A0' }}>Mismo día año anterior:</span>
-                <div style={{ textAlign: 'right' }}>
-                  <strong style={{ color: '#38BDF8' }}>{lastYearConsumption.toLocaleString('es-AR')} kWh</strong>
-                  {diffVsLastYear !== null && (
-                    <div style={{
-                      color: diffVsLastYear <= 0 ? '#4ade80' : '#f87171',
-                      fontSize: '0.75rem',
-                      fontWeight: '700',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: '2px'
-                    }}>
-                      {diffVsLastYear <= 0 ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />}
-                      {diffVsLastYear > 0 ? '+' : ''}{diffVsLastYear.toFixed(1)} kWh ({diffVsLastYear > 0 ? '+' : ''}{diffVsLastYearPct}%)
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Botones de Acción (Editar y WhatsApp) */}
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 type="button"
@@ -373,7 +294,7 @@ export default function MeterReading() {
                 }}
               >
                 <Edit3 size={18} />
-                Editar
+                Modificar
               </button>
 
               <button
@@ -419,82 +340,26 @@ export default function MeterReading() {
                   onChange={handleNumericChange}
                   disabled={loading}
                   style={{
-                    fontSize: '2.2rem',
+                    fontSize: '2.4rem',
                     fontWeight: '900',
                     fontFamily: 'monospace',
                     letterSpacing: '1px',
                     textAlign: 'center',
-                    padding: '14px 12px',
+                    padding: '16px 12px',
                     backgroundColor: '#0A0A0A',
                     border: '2px solid #FFBC0D',
                     borderRadius: '12px',
-                    color: '#FFBC0D'
+                    color: '#FFBC0D',
+                    width: '100%',
+                    outline: 'none'
                   }}
                 />
               </div>
-              <span style={{ fontSize: '0.72rem', color: '#888888', display: 'block', marginTop: '6px', textAlign: 'center' }}>
-                Ingresa el valor numérico visible en el display ({currentStore?.display_indicator || 'kWh'})
+              <span style={{ fontSize: '0.75rem', color: '#888888', display: 'block', marginTop: '6px', textAlign: 'center' }}>
+                Ingresa el valor numérico visible en el display
               </span>
             </div>
 
-            {/* Telemetría Reactiva Preliminar */}
-            {numericVal > 0 && (
-              <div style={{
-                backgroundColor: '#1E1E1E',
-                border: '1px solid #333333',
-                borderRadius: '10px',
-                padding: '12px',
-                marginBottom: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                  <span style={{ color: '#A0A0A0' }}>
-                    {multiplier > 1 ? `Total kWh (Display × ${multiplier}):` : 'Lectura Directa (Sin multiplicador):'}
-                  </span>
-                  <strong style={{ color: '#FFFFFF' }}>{currentKwh.toLocaleString('es-AR')} kWh</strong>
-                </div>
-
-                {previousReading && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                    <span style={{ color: '#A0A0A0' }}>
-                      Lectura anterior ({previousReading.reading_date}):
-                    </span>
-                    <span style={{ color: '#A0A0A0' }}>
-                      {previousReading.kwh_reading.toLocaleString('es-AR')} kWh
-                      {multiplier > 1 ? ` (Disp: ${previousReading.display_value})` : ''}
-                    </span>
-                  </div>
-                )}
-
-                {estimatedConsumption !== null && (
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingTop: '8px',
-                    borderTop: '1px solid #282828'
-                  }}>
-                    <div>
-                      <span style={{ fontSize: '0.85rem', color: '#FFBC0D', fontWeight: '700', display: 'block' }}>
-                        ⚡ Consumo 24h Calculado:
-                      </span>
-                      <span style={{ fontSize: '0.7rem', color: '#888888' }}>
-                        {multiplier > 1
-                          ? `(${numericVal} × ${multiplier}) - ${prevKwh} kWh`
-                          : `${numericVal} - ${prevKwh} kWh`}
-                      </span>
-                    </div>
-                    <strong style={{ fontSize: '1.2rem', color: '#FFBC0D' }}>
-                      +{estimatedConsumption.toLocaleString('es-AR')} kWh
-                    </strong>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Botón CARGAR */}
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 type="submit"
@@ -534,6 +399,31 @@ export default function MeterReading() {
         )}
       </div>
 
+      {/* PARTE INFERIOR: SOLO ÚLTIMA CARGA */}
+      <div style={{
+        backgroundColor: '#1A1A1A',
+        border: '1px solid #282828',
+        borderRadius: '12px',
+        padding: '16px 18px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <span style={{ fontSize: '0.88rem', color: '#A0A0A0', fontWeight: '600' }}>
+          Última carga:
+        </span>
+        <div style={{ textAlign: 'right' }}>
+          <span style={{ fontSize: '1.35rem', fontWeight: '900', color: '#FFBC0D', fontFamily: 'monospace' }}>
+            {lastReading ? lastReading.display_value : '—'}
+          </span>
+          {lastReading?.reading_date && (
+            <span style={{ fontSize: '0.72rem', color: '#666666', display: 'block' }}>
+              ({lastReading.reading_date})
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* CONFIRMACIÓN DE CARGA */}
       {showConfirmUpload && (
         <div style={{
@@ -553,17 +443,17 @@ export default function MeterReading() {
             borderRadius: '14px',
             padding: '22px',
             width: '100%',
-            maxWidth: '420px',
+            maxWidth: '380px',
             boxShadow: '0 12px 30px rgba(0,0,0,0.8)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFBC0D', marginBottom: '12px' }}>
               <HelpCircle size={22} />
               <h3 style={{ fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#FFFFFF' }}>
-                Confirmar Carga de Medidor
+                Confirmar Carga
               </h3>
             </div>
 
-            <p style={{ fontSize: '0.88rem', color: '#CCCCCC', marginBottom: '16px' }}>
+            <p style={{ fontSize: '0.88rem', color: '#CCCCCC', marginBottom: '14px' }}>
               ¿Confirmas registrar el siguiente valor para <strong>{currentStore?.name}</strong>?
             </p>
 
@@ -575,19 +465,9 @@ export default function MeterReading() {
               marginBottom: '18px'
             }}>
               <span style={{ fontSize: '0.75rem', color: '#888888' }}>VALOR INGRESADO</span>
-              <div style={{ fontSize: '2rem', fontWeight: '900', color: '#FFBC0D', fontFamily: 'monospace' }}>
+              <div style={{ fontSize: '2.2rem', fontWeight: '900', color: '#FFBC0D', fontFamily: 'monospace' }}>
                 {displayValue}
               </div>
-              {multiplier > 1 && (
-                <div style={{ fontSize: '0.78rem', color: '#A0A0A0', marginTop: '2px' }}>
-                  Total acumulado: {currentKwh.toLocaleString('es-AR')} kWh (TC x{multiplier})
-                </div>
-              )}
-              {estimatedConsumption !== null && (
-                <div style={{ fontSize: '0.85rem', color: '#38BDF8', fontWeight: '700', marginTop: '4px' }}>
-                  Consumo 24h estimado: +{estimatedConsumption.toLocaleString('es-AR')} kWh
-                </div>
-              )}
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -615,7 +495,7 @@ export default function MeterReading() {
                   fontWeight: '800'
                 }}
               >
-                Confirmar y Cargar
+                Confirmar
               </button>
             </div>
           </div>
@@ -641,13 +521,13 @@ export default function MeterReading() {
             borderRadius: '14px',
             padding: '22px',
             width: '100%',
-            maxWidth: '420px',
+            maxWidth: '380px',
             boxShadow: '0 12px 30px rgba(0,0,0,0.8)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38BDF8', marginBottom: '12px' }}>
               <Edit3 size={22} />
               <h3 style={{ fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#FFFFFF' }}>
-                Confirmar Edición
+                Modificar Lectura
               </h3>
             </div>
 
@@ -682,64 +562,12 @@ export default function MeterReading() {
                   fontWeight: '800'
                 }}
               >
-                Modificar Valor
+                Modificar
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Historial Reciente */}
-      <div style={{ marginTop: '24px' }}>
-        <h4 style={{ fontSize: '0.88rem', fontWeight: '700', color: '#888888', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-          <Clock size={15} /> Últimos registros ({currentStore?.code})
-        </h4>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {history.length === 0 ? (
-            <p style={{ color: '#666666', fontSize: '0.82rem', fontStyle: 'italic' }}>
-              No hay lecturas previas registradas.
-            </p>
-          ) : (
-            history.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  backgroundColor: '#1E1E1E',
-                  border: '1px solid #282828',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '0.82rem'
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: '700', color: '#FFFFFF' }}>
-                    {item.reading_date} {item.reading_date === todayStr ? '(Hoy)' : ''}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#888888', marginTop: '2px' }}>
-                    Display: {item.display_value} • Acum: {item.kwh_reading ? item.kwh_reading.toLocaleString('es-AR') : '-'} kWh
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{
-                    backgroundColor: '#262626',
-                    color: '#FFBC0D',
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    fontWeight: '700'
-                  }}>
-                    {item.calculated_consumption !== null ? `+${item.calculated_consumption.toLocaleString('es-AR')} kWh` : 'Base'}
-                  </span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
     </div>
   );
 }

@@ -186,3 +186,34 @@ SET meter_model = EXCLUDED.meter_model,
     display_indicator = EXCLUDED.display_indicator,
     meter_multiplier = EXCLUDED.meter_multiplier,
     is_active = EXCLUDED.is_active;
+
+-- 7. TABLA: app_config & FUNCIÓN DE ACCESO AL DASHBOARD
+CREATE TABLE IF NOT EXISTS public.app_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.app_config ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read app_config" ON public.app_config;
+CREATE POLICY "Public read app_config" ON public.app_config
+    FOR SELECT TO anon, authenticated USING (key != 'dashboard_pin');
+
+INSERT INTO public.app_config (key, value, description)
+VALUES ('dashboard_pin', '2026', 'Clave de acceso para Coordinador y Administrador')
+ON CONFLICT (key) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION public.verify_dashboard_pin(pin_input TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.app_config
+        WHERE key = 'dashboard_pin' AND value = TRIM(pin_input)
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.verify_dashboard_pin(TEXT) TO anon, authenticated;
+
