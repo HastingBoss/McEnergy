@@ -131,6 +131,8 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
     };
   });
 
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
   // Días que ya deberían estar registrados (hasta hoy - 1 día)
   const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
   const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
@@ -143,8 +145,9 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
     (r) => r.currentDateStr <= yesterdayStr && !r.currentEntry
   ).length;
 
-  // Abrir modal para un día específico
+  // Abrir modal para un día específico (bloqueo estricto para fechas futuras)
   const handleOpenDayModal = (row) => {
+    if (!row || row.currentDateStr > todayStr) return;
     setModalState({
       isOpen: true,
       dateString: row.currentDateStr,
@@ -153,12 +156,20 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
     });
   };
 
-  // Abrir modal de carga manual genérico (primer día faltante hasta ayer o el primero disponible)
+  // Abrir modal de carga manual genérico (primer día faltante hasta ayer o el día de hoy)
   const handleOpenAddDayModal = () => {
-    const firstMissing = comparisonRows.find((r) => r.currentDateStr <= yesterdayStr && !r.currentEntry)
-      || comparisonRows.find((r) => !r.currentEntry);
-    const targetRow = firstMissing || comparisonRows[0];
-    handleOpenDayModal(targetRow);
+    const firstMissing = comparisonRows.find((r) => r.currentDateStr <= yesterdayStr && !r.currentEntry);
+    if (firstMissing) {
+      handleOpenDayModal(firstMissing);
+    } else {
+      const todayRow = comparisonRows.find((r) => r.currentDateStr === todayStr);
+      if (todayRow) {
+        handleOpenDayModal(todayRow);
+      } else {
+        const editableRow = comparisonRows.find((r) => r.currentDateStr <= todayStr);
+        if (editableRow) handleOpenDayModal(editableRow);
+      }
+    }
   };
 
   return (
@@ -420,23 +431,27 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
               if (!hasData) return null;
 
               const isDaySaving = row.diff !== null && row.diff <= 0;
+              const isFutureDay = row.currentDateStr > todayStr;
 
               return (
                 <tr
                   key={row.day}
-                  onClick={() => handleOpenDayModal(row)}
+                  onClick={isFutureDay ? undefined : () => handleOpenDayModal(row)}
                   style={{
                     borderBottom: '1px solid #222222',
                     backgroundColor: row.isAnomaly
                       ? 'rgba(239, 68, 68, 0.08)'
                       : (row.day % 2 === 0 ? '#1A1A1A' : 'transparent'),
-                    cursor: 'pointer',
+                    cursor: isFutureDay ? 'default' : 'pointer',
+                    opacity: isFutureDay ? 0.38 : 1,
                     transition: 'background-color 0.15s ease'
                   }}
                   onMouseEnter={(e) => {
+                    if (isFutureDay) return;
                     e.currentTarget.style.backgroundColor = row.isAnomaly ? 'rgba(239, 68, 68, 0.18)' : '#262626';
                   }}
                   onMouseLeave={(e) => {
+                    if (isFutureDay) return;
                     e.currentTarget.style.backgroundColor = row.isAnomaly
                       ? 'rgba(239, 68, 68, 0.08)'
                       : (row.day % 2 === 0 ? '#1A1A1A' : 'transparent');
@@ -567,6 +582,8 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                         <Sparkles size={12} />
                         Estimar
                       </button>
+                    ) : isFutureDay ? (
+                      <span style={{ color: '#444444', fontSize: '0.75rem' }}>-</span>
                     ) : (
                       <button
                         type="button"
@@ -577,16 +594,17 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                         style={{
                           backgroundColor: '#222222',
                           border: '1px solid #333333',
-                          color: '#888888',
+                          color: '#FFBC0D',
                           borderRadius: '6px',
                           padding: '4px 8px',
                           fontSize: '0.72rem',
+                          fontWeight: '600',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px',
                           cursor: 'pointer'
                         }}
-                        title="Cargar lectura del día"
+                        title="Cargar lectura del día de hoy"
                       >
                         <Plus size={12} />
                         Cargar

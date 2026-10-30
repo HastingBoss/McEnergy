@@ -55,6 +55,9 @@ export default function DayEditEstimateModal({
   const [year, month, day] = dateString.split('-').map(Number);
   const formattedDateTitle = `${day} de ${new Date(year, month - 1, 1).toLocaleDateString('es-AR', { month: 'long' })} ${year}`;
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isFutureDate = dateString > todayStr;
+
   useEffect(() => {
     // Inicializar estado con datos existentes si los hay
     if (currentEntry) {
@@ -169,6 +172,11 @@ export default function DayEditEstimateModal({
   const handleSave = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (isFutureDate) {
+      setErrorMessage('No es posible registrar ni modificar lecturas en fechas futuras.');
+      return;
+    }
 
     const parsedDisplay = parseFloat(displayValue);
     if (isNaN(parsedDisplay) || parsedDisplay < 0) {
@@ -299,6 +307,23 @@ export default function DayEditEstimateModal({
             }}>
               <AlertTriangle size={18} />
               <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {isFutureDate && (
+            <div style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid #ef4444',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              color: '#f87171',
+              fontSize: '0.82rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <AlertTriangle size={18} />
+              <span>Esta fecha está en el futuro. No está permitido registrar ni modificar lecturas de días posteriores a hoy.</span>
             </div>
           )}
 
@@ -726,10 +751,11 @@ export default function DayEditEstimateModal({
 
                 <button
                   type="submit"
-                  disabled={saving || !displayValue}
+                  disabled={saving || !displayValue || isFutureDate}
                   style={{
-                    backgroundColor: '#FFBC0D',
-                    color: '#121212',
+                    backgroundColor: isFutureDate ? '#444444' : '#FFBC0D',
+                    color: isFutureDate ? '#888888' : '#121212',
+                    cursor: isFutureDate ? 'not-allowed' : 'pointer',
                     padding: '8px 16px',
                     fontSize: '0.85rem',
                     fontWeight: '800',

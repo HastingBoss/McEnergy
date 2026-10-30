@@ -106,6 +106,11 @@ export async function saveMeterReading({
   notes = '',
   technicianName = ''
 }) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (readingDate > todayStr) {
+    throw new Error('No es posible registrar ni modificar lecturas en fechas futuras.');
+  }
+
   const numDisplay = parseFloat(displayValue);
   const numMult = parseFloat(multiplier) || 1.0;
   const kwhReading = calculateKwh(numDisplay, numMult);
