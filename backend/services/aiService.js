@@ -59,10 +59,7 @@ Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
 {
   "success": true | false,
   "readingValue": number | null,
-  "confidence": number (entre 0.0 y 1.0),
-  "detectedIndicator": string (ej: "1.8.0"),
-  "detectedUnit": string (ej: "kWh"),
-  "notes": string (comentario técnico breve o motivo de error si no es legible)
+  "notes": string (solo si no es legible, describí el motivo en máximo 10 palabras)
 }`;
 
   const imagePart = {

@@ -302,7 +302,7 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
 
                 {/* Valor editable */}
                 {isEditing ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
                     <input
                       type="number"
                       value={editedValue}
@@ -316,9 +316,10 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
                         backgroundColor: '#1D1D1D',
                         border: '2px solid #FFC72C',
                         borderRadius: '8px',
-                        padding: '4px 10px',
+                        padding: '0 10px',
                         textAlign: 'center',
                         width: '180px',
+                        height: '52px',
                         outline: 'none'
                       }}
                     />
@@ -326,13 +327,13 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
                       type="button"
                       onClick={handleApplyEdited}
                       className="btn-mcd-yellow"
-                      style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{ height: '52px', padding: '0 16px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
-                      <Check size={14} /> OK
+                      <Check size={15} /> OK
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
                     <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#FFC72C', fontFamily: 'monospace', letterSpacing: '1px' }}>
                       {ocrResult.readingValue}
                     </div>
@@ -347,17 +348,9 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
                   </div>
                 )}
 
-                <div style={{ fontSize: '0.78rem', color: '#A0A0A0', marginTop: '4px' }}>
-                  Indicador: <span style={{ color: '#FFFFFF', fontWeight: '700' }}>{ocrResult.detectedIndicator || '1.8.0'}</span>
-                  {ocrResult.confidence && (
-                    <span> | Certeza: <strong style={{ color: '#4ade80' }}>{Math.round(ocrResult.confidence * 100)}%</strong></span>
-                  )}
+                <div style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '2px', fontStyle: 'italic' }}>
+                  Revisá que la lectura sea correcta antes de guardar.
                 </div>
-                {ocrResult.notes && (
-                  <div style={{ fontSize: '0.74rem', color: '#888888', marginTop: '6px', fontStyle: 'italic' }}>
-                    "{ocrResult.notes}"
-                  </div>
-                )}
               </div>
             )}
 
