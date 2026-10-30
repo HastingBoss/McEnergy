@@ -544,15 +544,20 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                       {/* Etiqueta Estimado */}
                       {row.isEstimated && (
                         <span style={{
-                          fontSize: '0.66rem',
-                          backgroundColor: '#3b2f05',
+                          fontSize: '0.64rem',
+                          backgroundColor: 'rgba(255, 199, 44, 0.12)',
                           color: '#FFC72C',
-                          border: '1px solid #b48509',
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                          fontWeight: '700'
+                          border: '1px solid rgba(255, 199, 44, 0.4)',
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          fontWeight: '800',
+                          letterSpacing: '0.3px',
+                          textTransform: 'uppercase',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          lineHeight: '1.2'
                         }} title="Lectura estimada automáticamente">
-                          [Est]
+                          Estimado
                         </span>
                       )}
 
