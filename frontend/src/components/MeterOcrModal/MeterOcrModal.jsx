@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Upload, X, Check, RefreshCw, AlertCircle, Sparkles, Zap } from 'lucide-react';
+import { Camera, Upload, X, Check, RefreshCw, AlertCircle, Sparkles, Pencil } from 'lucide-react';
 import { scanMeterDisplay } from '../../services/aiService';
 
 export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyReading }) {
@@ -7,6 +7,8 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
   const [isScanning, setIsScanning] = useState(false);
   const [ocrResult, setOcrResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedValue, setEditedValue] = useState('');
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -83,6 +85,10 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
   };
 
   const handleApply = () => {
+    if (isEditing) {
+      handleApplyEdited();
+      return;
+    }
     if (ocrResult?.readingValue !== undefined && ocrResult.readingValue !== null) {
       onApplyReading(ocrResult.readingValue);
       handleClose();
@@ -94,6 +100,8 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
     setOcrResult(null);
     setErrorMsg(null);
     setIsScanning(false);
+    setIsEditing(false);
+    setEditedValue('');
     onClose();
   };
 
@@ -101,6 +109,21 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
     setImagePreview(null);
     setOcrResult(null);
     setErrorMsg(null);
+    setIsEditing(false);
+    setEditedValue('');
+  };
+
+  const handleStartEdit = () => {
+    setEditedValue(String(ocrResult.readingValue));
+    setIsEditing(true);
+  };
+
+  const handleApplyEdited = () => {
+    const parsed = parseFloat(editedValue.replace(',', '.'));
+    if (!isNaN(parsed)) {
+      onApplyReading(parsed);
+      handleClose();
+    }
   };
 
   return (
@@ -273,12 +296,57 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
                 marginBottom: '16px',
                 textAlign: 'center'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#4ade80', fontSize: '0.8rem', fontWeight: '800', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#4ade80', fontSize: '0.8rem', fontWeight: '800', marginBottom: '8px' }}>
                   <Check size={16} /> LECTURA IDENTIFICADA
                 </div>
-                <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#FFC72C', fontFamily: 'monospace', letterSpacing: '1px' }}>
-                  {ocrResult.readingValue}
-                </div>
+
+                {/* Valor editable */}
+                {isEditing ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <input
+                      type="number"
+                      value={editedValue}
+                      onChange={(e) => setEditedValue(e.target.value)}
+                      autoFocus
+                      style={{
+                        fontSize: '2rem',
+                        fontWeight: '900',
+                        fontFamily: 'monospace',
+                        color: '#FFC72C',
+                        backgroundColor: '#1D1D1D',
+                        border: '2px solid #FFC72C',
+                        borderRadius: '8px',
+                        padding: '4px 10px',
+                        textAlign: 'center',
+                        width: '180px',
+                        outline: 'none'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyEdited}
+                      className="btn-mcd-yellow"
+                      style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Check size={14} /> OK
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#FFC72C', fontFamily: 'monospace', letterSpacing: '1px' }}>
+                      {ocrResult.readingValue}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleStartEdit}
+                      title="Editar valor"
+                      style={{ background: 'none', border: '1px solid #3A3833', borderRadius: '6px', color: '#A0A0A0', cursor: 'pointer', padding: '6px', display: 'flex', alignItems: 'center' }}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  </div>
+                )}
+
                 <div style={{ fontSize: '0.78rem', color: '#A0A0A0', marginTop: '4px' }}>
                   Indicador: <span style={{ color: '#FFFFFF', fontWeight: '700' }}>{ocrResult.detectedIndicator || '1.8.0'}</span>
                   {ocrResult.confidence && (

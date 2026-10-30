@@ -48,10 +48,12 @@ Contexto del local:
 - Código o indicador del display: ${storeInfo.display_indicator || '1.8.0 / Active Energy / Total kWh'}
 
 Reglas de lectura:
-1. Buscá el indicador '1.8.0', 'Active Energy', 'EA' o el valor numérico principal acumulado en kWh.
-2. Identificá correctamente si contiene puntos o comas decimales (ej. 27646.2 o 276462).
-3. Si el display muestra ceros a la izquierda (ej. 0027646.2), descartalos en el valor numérico (27646.2).
-4. No apliques factor de transformación (TC); devolvé exactamente la cifra que figura en la pantalla del medidor.
+1. Buscá el indicador '1.8.0', 'Active Energy', 'EA' o 'TOTAL kWh' en el display.
+2. Muchos medidores (ABB Alpha II, Circutor, Schneider) muestran el display dividido en DOS GRUPOS separados por un espacio o guión: un grupo de 3 dígitos de REGISTRO/PROGRAMA (ej. "003", "001") y el grupo de la LECTURA real de energía (ej. "43537.2"). El grupo de registro NO es parte de la lectura de energía.
+3. Tomá ÚNICAMENTE el grupo de mayor número de dígitos como la lectura de energía. Si ves "003 43537.2", el valor correcto es 43537.2 (no 343537.2).
+4. Descartá ceros a la izquierda del grupo de lectura (ej. "043537.2" → 43537.2).
+5. Identificá correctamente si contiene punto o coma decimal (ej. 27646.2 o 276462).
+6. No apliques factor de transformación (TC); devolvé exactamente la cifra del grupo de energía del display.
 
 Responde ÚNICAMENTE un objeto JSON con este esquema exacto:
 {
