@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mcd-maintenance-pwa-v2';
+const CACHE_NAME = 'mcd-maintenance-pwa-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
