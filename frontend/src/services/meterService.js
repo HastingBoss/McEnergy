@@ -102,6 +102,7 @@ export async function saveMeterReading({
   displayValue,
   multiplier = 1.0,
   isReset = false,
+  isEstimated = false,
   notes = '',
   technicianName = ''
 }) {
@@ -125,7 +126,7 @@ export async function saveMeterReading({
     const prevDate = new Date(previousEntries[0].reading_date);
     const currDate = new Date(readingDate);
     dayDiff = Math.max(1, Math.round((currDate - prevDate) / (1000 * 60 * 60 * 24)));
-    if (dayDiff > 4) {
+    if (dayDiff > 4 && !isEstimated) {
       effectiveReset = true;
     }
   }
@@ -141,6 +142,7 @@ export async function saveMeterReading({
     kwh_reading: kwhReading,
     is_reset: effectiveReset,
     calculated_consumption: calculatedConsumption,
+    is_estimated: !!isEstimated,
     notes: notes || null,
     technician_name: technicianName || null,
     updated_at: new Date().toISOString()
@@ -152,6 +154,221 @@ export async function saveMeterReading({
     .select()
     .single();
 
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteMeterReading(storeId, readingDate) {
+  // Buscar lectura posterior antes de borrar
+  const { data: subsequent } = await supabase
+    .from('meter_readings')
+    .select('id, reading_date, kwh_reading')
+    .eq('store_id', storeId)
+    .gt('reading_date', readingDate)
+    .order('reading_date', { ascending: true })
+    .limit(1);
+
+  // Buscar lectura previa antes de borrar
+  const { data: prior } = await supabase
+    .from('meter_readings')
+    .select('id, reading_date, kwh_reading')
+    .eq('store_id', storeId)
+    .lt('reading_date', readingDate)
+    .order('reading_date', { ascending: false })
+    .limit(1);
+
+  const { error } = await supabase
+    .from('meter_readings')
+    .delete()
+    .eq('store_id', storeId)
+    .eq('reading_date', readingDate);
+
+  if (error) throw error;
+
+  // Recalcular lectura subsiguiente si existía
+  if (subsequent && subsequent[0]) {
+    const nextItem = subsequent[0];
+    if (prior && prior[0]) {
+      const prevItem = prior[0];
+      const prevDate = new Date(prevItem.reading_date);
+      const nextDate = new Date(nextItem.reading_date);
+      const dayDiff = Math.max(1, Math.round((nextDate - prevDate) / (1000 * 60 * 60 * 24)));
+
+      if (dayDiff <= 4) {
+        const newCons = Math.max(0, nextItem.kwh_reading - prevItem.kwh_reading);
+        await supabase
+          .from('meter_readings')
+          .update({
+            calculated_consumption: newCons,
+            reading_days: dayDiff,
+            is_reset: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', nextItem.id);
+      } else {
+        await supabase
+          .from('meter_readings')
+          .update({
+            calculated_consumption: null,
+            reading_days: 1,
+            is_reset: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', nextItem.id);
+      }
+    } else {
+      await supabase
+        .from('meter_readings')
+        .update({
+          calculated_consumption: null,
+          reading_days: 1,
+          is_reset: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', nextItem.id);
+    }
+  }
+
+  return true;
+}
+
+export async function getEstimationContext(storeId, targetDate, multiplier = 1.0, currentMonthReadings = []) {
+  const mult = parseFloat(multiplier) || 1.0;
+
+  // Lectura anterior más cercana
+  const prevPromise = supabase
+    .from('meter_readings')
+    .select('*')
+    .eq('store_id', storeId)
+    .lt('reading_date', targetDate)
+    .order('reading_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Lectura posterior más cercana
+  const nextPromise = supabase
+    .from('meter_readings')
+    .select('*')
+    .eq('store_id', storeId)
+    .gt('reading_date', targetDate)
+    .order('reading_date', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  // Lectura del mismo día año anterior
+  const prevYearDate = getPreviousYearDate(targetDate);
+  const prevYearPromise = supabase
+    .from('meter_readings')
+    .select('*')
+    .eq('store_id', storeId)
+    .eq('reading_date', prevYearDate)
+    .maybeSingle();
+
+  const [prevRes, nextRes, prevYearRes] = await Promise.all([
+    prevPromise,
+    nextPromise,
+    prevYearPromise
+  ]);
+
+  const prevReading = prevRes.data || null;
+  const nextReading = nextRes.data || null;
+  const prevYearReading = prevYearRes.data || null;
+
+  // Promedio diario del mes actual
+  const validCurrentConsumptions = (currentMonthReadings || [])
+    .filter((r) => r.calculated_consumption !== null && r.calculated_consumption > 0 && r.reading_date !== targetDate)
+    .map((r) => parseFloat(r.calculated_consumption));
+
+  let avgDailyKwh = 0;
+  if (validCurrentConsumptions.length > 0) {
+    avgDailyKwh = validCurrentConsumptions.reduce((a, b) => a + b, 0) / validCurrentConsumptions.length;
+  }
+
+  // SUGERENCIA 1: Interpolación lineal entre lectura anterior y posterior
+  let interpolationSuggestion = null;
+  if (prevReading && nextReading) {
+    const prevDate = new Date(prevReading.reading_date);
+    const nextDate = new Date(nextReading.reading_date);
+    const currDate = new Date(targetDate);
+
+    const totalDays = Math.round((nextDate - prevDate) / (1000 * 60 * 60 * 24));
+    const daysFromPrev = Math.round((currDate - prevDate) / (1000 * 60 * 60 * 24));
+
+    if (totalDays > 0 && daysFromPrev > 0 && daysFromPrev < totalDays) {
+      const totalDisplayDelta = parseFloat(nextReading.display_value) - parseFloat(prevReading.display_value);
+      if (totalDisplayDelta >= 0) {
+        const dailyDisplayInc = totalDisplayDelta / totalDays;
+        const suggestedDisplay = Number((parseFloat(prevReading.display_value) + dailyDisplayInc * daysFromPrev).toFixed(3));
+        const totalKwhDelta = parseFloat(nextReading.kwh_reading) - parseFloat(prevReading.kwh_reading);
+        const dailyKwh = Number((totalKwhDelta / totalDays).toFixed(1));
+
+        interpolationSuggestion = {
+          displayValue: suggestedDisplay,
+          dailyKwh,
+          totalDays,
+          daysFromPrev,
+          prevDate: prevReading.reading_date,
+          nextDate: nextReading.reading_date,
+          prevDisplay: prevReading.display_value,
+          nextDisplay: nextReading.display_value
+        };
+      }
+    }
+  }
+
+  // SUGERENCIA 2: Promedio diario del mes
+  let avgSuggestion = null;
+  if (avgDailyKwh > 0) {
+    let suggestedDisplay = null;
+    if (prevReading) {
+      const daysFromPrev = Math.max(1, Math.round((new Date(targetDate) - new Date(prevReading.reading_date)) / (1000 * 60 * 60 * 24)));
+      suggestedDisplay = Number((parseFloat(prevReading.display_value) + (avgDailyKwh * daysFromPrev) / mult).toFixed(3));
+    } else if (nextReading) {
+      const daysToNext = Math.max(1, Math.round((new Date(nextReading.reading_date) - new Date(targetDate)) / (1000 * 60 * 60 * 24)));
+      suggestedDisplay = Number(Math.max(0, parseFloat(nextReading.display_value) - (avgDailyKwh * daysToNext) / mult).toFixed(3));
+    }
+
+    avgSuggestion = {
+      dailyKwh: Number(avgDailyKwh.toFixed(1)),
+      displayValue: suggestedDisplay
+    };
+  }
+
+  // SUGERENCIA 3: Mismo día del año anterior
+  let prevYearSuggestion = null;
+  if (prevYearReading && prevYearReading.calculated_consumption > 0) {
+    const pyKwh = parseFloat(prevYearReading.calculated_consumption);
+    let suggestedDisplay = null;
+    if (prevReading) {
+      suggestedDisplay = Number((parseFloat(prevReading.display_value) + pyKwh / mult).toFixed(3));
+    } else if (nextReading) {
+      suggestedDisplay = Number(Math.max(0, parseFloat(nextReading.display_value) - pyKwh / mult).toFixed(3));
+    }
+
+    prevYearSuggestion = {
+      dailyKwh: Number(pyKwh.toFixed(1)),
+      displayValue: suggestedDisplay,
+      prevYearDate
+    };
+  }
+
+  return {
+    prevReading,
+    nextReading,
+    prevYearReading,
+    avgDailyKwh,
+    interpolationSuggestion,
+    avgSuggestion,
+    prevYearSuggestion
+  };
+}
+
+export async function batchSaveReadings(readings) {
+  if (!readings || readings.length === 0) return [];
+  const { data, error } = await supabase
+    .from('meter_readings')
+    .upsert(readings, { onConflict: 'store_id,reading_date' })
+    .select();
   if (error) throw error;
   return data;
 }

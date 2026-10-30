@@ -1,8 +1,24 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, ArrowDownRight, ArrowUpRight, Calendar, Building2, RefreshCw, FileSpreadsheet } from 'lucide-react';
+import {
+  TrendingUp,
+  ArrowDownRight,
+  ArrowUpRight,
+  Calendar,
+  Building2,
+  RefreshCw,
+  FileSpreadsheet,
+  Edit3,
+  Plus,
+  Sparkles,
+  AlertTriangle,
+  CheckCircle2,
+  Clock
+} from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { fetchMonthlyComparison } from '../../services/meterService';
 import { downloadReportFile } from '../../services/reportExportService';
+import DayEditEstimateModal from '../../components/DayEditEstimateModal/DayEditEstimateModal';
+import BatchEstimateModal from '../../components/BatchEstimateModal/BatchEstimateModal';
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -19,6 +35,15 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
   const [prevYearData, setPrevYearData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Estados para modales de edición / estimación
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    dateString: null,
+    currentEntry: null,
+    prevYearEntry: null
+  });
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 
   useEffect(() => {
     if (currentStore?.id) {
@@ -55,6 +80,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
   const isSaving = netDiff <= 0;
 
   const currentDaysReported = currentYearData.filter((r) => r.calculated_consumption !== null).length;
+  const currentEstimatedDays = currentYearData.filter((r) => r.is_estimated).length;
   const prevDaysReported = prevYearData.filter((r) => r.calculated_consumption !== null).length;
 
   const currentDailyAvg = currentDaysReported > 0 ? (totalCurrentMonth / currentDaysReported).toFixed(1) : 0;
@@ -83,17 +109,50 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
       diffPct = prevCons > 0 ? ((diff / prevCons) * 100).toFixed(1) : 0;
     }
 
+    // Detección de posibles incongruencias (0 kWh con lectura cargada, o pico > 2.5x promedio)
+    const isAnomaly = currentCons !== null && (
+      (currentCons === 0 && !currentEntry?.is_reset) ||
+      (currentDailyAvg > 0 && currentCons > currentDailyAvg * 2.5)
+    );
+
     return {
       day,
+      currentDateStr,
+      prevDateStr,
+      currentEntry,
+      prevEntry,
       currentCons,
       prevCons,
       diff,
-      diffPct
+      diffPct,
+      isEstimated: !!currentEntry?.is_estimated,
+      isReset: !!currentEntry?.is_reset,
+      isAnomaly
     };
   });
 
+  // Cantidad de días faltantes en el mes
+  const missingDaysCount = comparisonRows.filter((r) => !r.currentEntry).length;
+
+  // Abrir modal para un día específico
+  const handleOpenDayModal = (row) => {
+    setModalState({
+      isOpen: true,
+      dateString: row.currentDateStr,
+      currentEntry: row.currentEntry,
+      prevYearEntry: row.prevEntry
+    });
+  };
+
+  // Abrir modal de carga manual genérico (primer día faltante o día 1)
+  const handleOpenAddDayModal = () => {
+    const firstMissing = comparisonRows.find((r) => !r.currentEntry);
+    const targetRow = firstMissing || comparisonRows[0];
+    handleOpenDayModal(targetRow);
+  };
+
   return (
-    <div style={isEmbedded ? { marginTop: '4px' } : { padding: '16px', maxWidth: '800px', margin: '0 auto', paddingBottom: '90px' }}>
+    <div style={isEmbedded ? { marginTop: '4px' } : { padding: '16px', maxWidth: '850px', margin: '0 auto', paddingBottom: '90px' }}>
       {/* Título y Selector de Local/Mes/Año */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <div>
@@ -191,6 +250,77 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
         </div>
       </div>
 
+      {/* Barra de Acciones de Estimación y Corrección */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#1E1E1E',
+        border: '1px solid #333',
+        borderRadius: '10px',
+        padding: '10px 14px',
+        marginBottom: '16px',
+        flexWrap: 'wrap',
+        gap: '10px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#CCCCCC' }}>
+          <Clock size={16} color="#FFBC0D" />
+          <span>
+            {missingDaysCount > 0 ? (
+              <>Hay <strong style={{ color: '#FFBC0D' }}>{missingDaysCount} días sin lectura</strong> en {MONTH_NAMES[selectedMonth - 1]}</>
+            ) : (
+              <span style={{ color: '#4ade80' }}>✓ Mes completo (31/31 días con registro)</span>
+            )}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={handleOpenAddDayModal}
+            style={{
+              backgroundColor: '#2A2A2A',
+              color: '#FFFFFF',
+              border: '1px solid #444',
+              borderRadius: '8px',
+              padding: '6px 12px',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+            title="Cargar o corregir una fecha puntual"
+          >
+            <Plus size={15} color="#FFBC0D" />
+            Cargar / Estimar Día
+          </button>
+
+          {missingDaysCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsBatchModalOpen(true)}
+              style={{
+                backgroundColor: 'rgba(255, 188, 13, 0.15)',
+                color: '#FFBC0D',
+                border: '1px solid #FFBC0D',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                fontSize: '0.8rem',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title="Estimar automáticamente todos los días faltantes del mes"
+            >
+              <Sparkles size={15} />
+              Autocompletar Faltantes ({missingDaysCount})
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Tarjetas de Resumen KPI */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
         {/* Acumulado Este Año */}
@@ -202,7 +332,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
             {totalCurrentMonth.toLocaleString('es-AR', { maximumFractionDigits: 1 })} <span style={{ fontSize: '0.85rem' }}>kWh</span>
           </div>
           <div style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '2px' }}>
-            Promedio diario: {currentDailyAvg} kWh ({currentDaysReported} días)
+            Promedio diario: {currentDailyAvg} kWh ({currentDaysReported} días{currentEstimatedDays > 0 ? ` • ${currentEstimatedDays} est.` : ''})
           </div>
         </div>
 
@@ -250,23 +380,29 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
 
       {/* Tabla Detalle Día por Día */}
       <div className="card" style={{ padding: '14px', overflowX: 'auto' }}>
-        <h3 style={{ fontSize: '0.95rem', fontWeight: '700', marginBottom: '12px', color: '#FFFFFF' }}>
-          Detalle Diario de Consumo (kWh)
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#FFFFFF', margin: 0 }}>
+            Detalle Diario de Consumo (kWh)
+          </h3>
+          <span style={{ fontSize: '0.74rem', color: '#888888' }}>
+            💡 Haz clic en cualquier fila para editar o estimar la lectura de ese día
+          </span>
+        </div>
 
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #333333', textAlign: 'left', color: '#888888' }}>
-              <th style={{ padding: '8px 6px' }}>Día</th>
+              <th style={{ padding: '8px 6px', width: '45px' }}>Día</th>
               <th style={{ padding: '8px 6px' }}>{selectedYear}</th>
               <th style={{ padding: '8px 6px' }}>{selectedYear - 1}</th>
               <th style={{ padding: '8px 6px' }}>Diferencia</th>
               <th style={{ padding: '8px 6px', textAlign: 'right' }}>% Var</th>
+              <th style={{ padding: '8px 6px', textAlign: 'center', width: '90px' }}>Acción</th>
             </tr>
           </thead>
           <tbody>
             {comparisonRows.map((row) => {
-              const hasData = row.currentCons !== null || row.prevCons !== null;
+              const hasData = row.currentCons !== null || row.prevCons !== null || row.currentEntry !== null;
               if (!hasData) return null;
 
               const isDaySaving = row.diff !== null && row.diff <= 0;
@@ -274,20 +410,80 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
               return (
                 <tr
                   key={row.day}
+                  onClick={() => handleOpenDayModal(row)}
                   style={{
                     borderBottom: '1px solid #222222',
-                    backgroundColor: row.day % 2 === 0 ? '#1A1A1A' : 'transparent'
+                    backgroundColor: row.isAnomaly
+                      ? 'rgba(239, 68, 68, 0.08)'
+                      : (row.day % 2 === 0 ? '#1A1A1A' : 'transparent'),
+                    cursor: 'pointer',
+                    transition: 'background-color 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = row.isAnomaly ? 'rgba(239, 68, 68, 0.18)' : '#262626';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = row.isAnomaly
+                      ? 'rgba(239, 68, 68, 0.08)'
+                      : (row.day % 2 === 0 ? '#1A1A1A' : 'transparent');
                   }}
                 >
                   <td style={{ padding: '8px 6px', fontWeight: '700', color: '#FFFFFF' }}>
                     {row.day}
                   </td>
-                  <td style={{ padding: '8px 6px', color: '#FFBC0D', fontWeight: '600' }}>
-                    {row.currentCons !== null ? `${row.currentCons.toFixed(1)} kWh` : '-'}
+
+                  {/* Consumo año seleccionado */}
+                  <td style={{ padding: '8px 6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      {row.currentCons !== null ? (
+                        <span style={{ color: '#FFBC0D', fontWeight: '600' }}>
+                          {row.currentCons.toFixed(1)} kWh
+                        </span>
+                      ) : (
+                        <span style={{ color: '#666666' }}>-</span>
+                      )}
+
+                      {/* Etiqueta Estimado */}
+                      {row.isEstimated && (
+                        <span style={{
+                          fontSize: '0.66rem',
+                          backgroundColor: '#3b2f05',
+                          color: '#FFBC0D',
+                          border: '1px solid #b48509',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          fontWeight: '700'
+                        }} title="Lectura estimada automáticamente">
+                          [Est]
+                        </span>
+                      )}
+
+                      {/* Indicador de anomalía */}
+                      {row.isAnomaly && (
+                        <span style={{
+                          fontSize: '0.66rem',
+                          backgroundColor: '#450a0a',
+                          color: '#f87171',
+                          border: '1px solid #ef4444',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          fontWeight: '700',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }} title="Posible valor anómalo o incongruencia (0 kWh o pico inusual)">
+                          <AlertTriangle size={10} /> Revisar
+                        </span>
+                      )}
+                    </div>
                   </td>
+
+                  {/* Consumo año anterior */}
                   <td style={{ padding: '8px 6px', color: '#38BDF8' }}>
                     {row.prevCons !== null ? `${row.prevCons.toFixed(1)} kWh` : '-'}
                   </td>
+
+                  {/* Diferencia */}
                   <td style={{
                     padding: '8px 6px',
                     fontWeight: '600',
@@ -295,6 +491,8 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                   }}>
                     {row.diff !== null ? `${row.diff > 0 ? '+' : ''}${row.diff.toFixed(1)} kWh` : '-'}
                   </td>
+
+                  {/* Porcentaje de variación */}
                   <td style={{
                     padding: '8px 6px',
                     textAlign: 'right',
@@ -303,18 +501,96 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                   }}>
                     {row.diffPct !== null ? `${row.diff > 0 ? '+' : ''}${row.diffPct}%` : '-'}
                   </td>
+
+                  {/* Botón de Acción directa */}
+                  <td style={{ padding: '6px', textAlign: 'center' }}>
+                    {row.currentEntry ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenDayModal(row);
+                        }}
+                        style={{
+                          backgroundColor: '#262626',
+                          border: '1px solid #383838',
+                          color: '#FFFFFF',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontSize: '0.72rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          cursor: 'pointer'
+                        }}
+                        title="Editar lectura de este día"
+                      >
+                        <Edit3 size={12} color="#FFBC0D" />
+                        Editar
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenDayModal(row);
+                        }}
+                        style={{
+                          backgroundColor: 'rgba(255, 188, 13, 0.12)',
+                          border: '1px solid #b48509',
+                          color: '#FFBC0D',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontSize: '0.72rem',
+                          fontWeight: '700',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          cursor: 'pointer'
+                        }}
+                        title="Cargar o estimar día faltante"
+                      >
+                        <Sparkles size={12} />
+                        Estimar
+                      </button>
+                    )}
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
 
-        {comparisonRows.every((r) => r.currentCons === null && r.prevCons === null) && (
+        {comparisonRows.every((r) => r.currentCons === null && r.prevCons === null && !r.currentEntry) && (
           <p style={{ textAlign: 'center', color: '#888888', padding: '24px 0', fontSize: '0.85rem' }}>
             No hay lecturas registradas en {MONTH_NAMES[selectedMonth - 1]} para {currentStore?.name}.
           </p>
         )}
       </div>
+
+      {/* Modal para Editar / Estimar un día específico */}
+      <DayEditEstimateModal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ isOpen: false, dateString: null, currentEntry: null, prevYearEntry: null })}
+        store={currentStore}
+        dateString={modalState.dateString}
+        currentEntry={modalState.currentEntry}
+        prevYearEntry={modalState.prevYearEntry}
+        currentMonthReadings={currentYearData}
+        onSaved={loadComparison}
+      />
+
+      {/* Modal para Autocompletar días faltantes en lote */}
+      <BatchEstimateModal
+        isOpen={isBatchModalOpen}
+        onClose={() => setIsBatchModalOpen(false)}
+        store={currentStore}
+        year={selectedYear}
+        month={selectedMonth}
+        currentYearData={currentYearData}
+        prevYearData={prevYearData}
+        onCompleted={loadComparison}
+      />
     </div>
   );
 }

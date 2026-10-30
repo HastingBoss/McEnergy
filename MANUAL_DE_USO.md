@@ -63,7 +63,17 @@ Análisis de evolución temporal por local:
 - **Detalle Diario (Días 1 al 31)**:
   - Fila por fila con el consumo diario en kWh de 2026 en amarillo y 2025 en celeste.
   - Diferencia y porcentaje de variación día a día.
+  - Alerta visual `⚠️ Revisar` ante posibles valores anómalos o incongruencias (como 0 kWh con medidor activo o picos extremos).
+  - Etiqueta `[Est]` para identificar mediciones estimadas de manera transparente.
   - Botón de acceso rápido **Excel** para descargar el mes en curso.
+- **Edición, Carga y Estimación Inteligente**:
+  - **Editar / Cargar Día**: Al hacer clic en cualquier fila o en el botón `+ Cargar / Estimar Día`, se abre el modal interactivo para cargar o corregir el display del medidor o el consumo diario.
+  - **Asistente de Estimación**: Calcula en 1 clic la mejor proyección técnica:
+    1. *Interpolación Lineal*: Divide de forma equitativa el consumo entre días anterior y posterior conocidos.
+    2. *Promedio Diario del Mes*: Proyecta el consumo basándose en el comportamiento real del local.
+    3. *Mismo Día Año Anterior*: Aplica la medición histórica del año previo como referencia.
+  - **Autocompletar Faltantes**: El botón `✨ Autocompletar Faltantes` detecta todos los días vacíos del mes y genera una propuesta lista para confirmar y guardar en bloque.
+
 
 ---
 
