@@ -25,6 +25,7 @@ import { getPreviousYearDate } from '../../services/meterService';
 import { useStore } from '../../context/StoreContext';
 import ConsumptionComparison from '../ConsumptionComparison/ConsumptionComparison';
 import BatchImport from '../../components/BatchImport/BatchImport';
+import AppFooter from '../../components/AppFooter/AppFooter';
 import { downloadReportFile } from '../../services/reportExportService';
 
 const MONTH_NAMES = [
@@ -797,6 +798,8 @@ export default function GlobalDashboard() {
           </div>
         )}
       </div>
+
+      <AppFooter />
     </div>
   );
 }

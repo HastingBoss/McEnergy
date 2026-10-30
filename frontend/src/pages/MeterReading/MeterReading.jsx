@@ -13,6 +13,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import MeterOcrModal from '../../components/MeterOcrModal/MeterOcrModal';
+import AppFooter from '../../components/AppFooter/AppFooter';
 import { useStore } from '../../context/StoreContext';
 import {
   calculateKwh,
@@ -796,6 +797,8 @@ export default function MeterReading() {
         currentStore={currentStore}
         onApplyReading={handleApplyOcrReading}
       />
+
+      <AppFooter />
     </div>
   );
 }
