@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, X, Check, Copy, Send, RefreshCw, AlertCircle, FileText } from 'lucide-react';
+import { Sparkles, X, Check, Copy, Send, RefreshCw, AlertCircle } from 'lucide-react';
 import { generateConsumptionAudit } from '../../services/aiService';
 
 export default function AiAuditModal({
@@ -10,7 +10,8 @@ export default function AiAuditModal({
   year,
   kpis,
   anomalies = [],
-  dailySummary = []
+  dailySummary = [],
+  patternInsights = {}
 }) {
   const [reportMarkdown, setReportMarkdown] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -39,7 +40,8 @@ export default function AiAuditModal({
         year,
         kpis,
         anomalies,
-        dailySummary
+        dailySummary,
+        patternInsights
       });
 
       if (result.markdown) {
@@ -75,154 +77,187 @@ export default function AiAuditModal({
     <div style={{
       position: 'fixed',
       inset: 0,
-      backgroundColor: 'rgba(0,0,0,0.85)',
-      backdropFilter: 'blur(5px)',
-      zIndex: 1100,
+      backgroundColor: 'rgba(0,0,0,0.88)',
+      backdropFilter: 'blur(6px)',
+      zIndex: 9999, // Supera cualquier navbar o barra superior/inferior
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '16px'
+      padding: '12px'
     }}>
       <div style={{
         backgroundColor: '#27251F',
         border: '2px solid #FFC72C',
-        borderRadius: '18px',
+        borderRadius: '16px',
         width: '100%',
-        maxWidth: '640px',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        padding: '24px',
-        color: '#FFFFFF',
-        boxShadow: '0 16px 36px rgba(0,0,0,0.85)',
+        maxWidth: '560px',
+        maxHeight: '88vh',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        overflow: 'hidden', // Evita que el contenedor desplace el botón de cierre
+        color: '#FFFFFF',
+        boxShadow: '0 24px 48px rgba(0,0,0,0.95)'
       }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #3A3833', paddingBottom: '12px' }}>
+        {/* Header Fijo con Botón de Cierre Inamovible */}
+        <div style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid #3A3833',
+          backgroundColor: '#1E1C18',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexShrink: 0
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={22} color="#FFC72C" />
+            <Sparkles size={20} color="#FFC72C" />
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#FFFFFF' }}>
-                Auditoría Energética IA
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '900', color: '#FFFFFF' }}>
+                Auditoría IA — Coordinador
               </h3>
-              <span style={{ fontSize: '0.78rem', color: '#A0A0A0' }}>
-                {storeName} — {monthName} {year}
+              <span style={{ fontSize: '0.74rem', color: '#A0A0A0' }}>
+                {storeName} • {monthName} {year}
               </span>
             </div>
           </div>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#A0A0A0', cursor: 'pointer', padding: '4px' }}
+            aria-label="Cerrar modal"
+            style={{
+              backgroundColor: '#1D1D1D',
+              border: '1px solid #FFC72C',
+              color: '#FFC72C',
+              cursor: 'pointer',
+              padding: '6px',
+              borderRadius: '8px',
+              minHeight: '38px',
+              minWidth: '38px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Resumen KPIs del período */}
+        {/* Cuerpo Desplazable */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-          gap: '8px',
-          marginBottom: '16px',
-          backgroundColor: '#1D1D1D',
-          padding: '12px',
-          borderRadius: '12px',
-          border: '1px solid #3A3833'
+          flex: 1,
+          overflowY: 'auto',
+          padding: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
         }}>
-          <div>
-            <span style={{ fontSize: '0.7rem', color: '#888888', display: 'block' }}>Total {year}</span>
-            <strong style={{ fontSize: '0.95rem', color: '#FFC72C' }}>
-              {Math.round(kpis?.totalKwhCurrent || 0).toLocaleString('es-AR')} kWh
-            </strong>
+          {/* Mini Tarjeta KPI */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '6px',
+            backgroundColor: '#1D1D1D',
+            padding: '10px',
+            borderRadius: '10px',
+            border: '1px solid #3A3833',
+            textAlign: 'center'
+          }}>
+            <div>
+              <span style={{ fontSize: '0.65rem', color: '#888888', display: 'block' }}>Total {year}</span>
+              <strong style={{ fontSize: '0.85rem', color: '#FFC72C' }}>
+                {Math.round(kpis?.totalKwhCurrent || 0).toLocaleString('es-AR')}
+              </strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.65rem', color: '#888888', display: 'block' }}>Año {year - 1}</span>
+              <strong style={{ fontSize: '0.85rem', color: '#38BDF8' }}>
+                {Math.round(kpis?.totalKwhPrior || 0).toLocaleString('es-AR')}
+              </strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.65rem', color: '#888888', display: 'block' }}>Variación</span>
+              <strong style={{ fontSize: '0.85rem', color: (kpis?.deltaPercent || 0) <= 0 ? '#4ade80' : '#f87171' }}>
+                {kpis?.deltaPercent !== undefined ? `${kpis.deltaPercent > 0 ? '+' : ''}${kpis.deltaPercent}%` : 'N/A'}
+              </strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '0.65rem', color: '#888888', display: 'block' }}>Prom/día</span>
+              <strong style={{ fontSize: '0.85rem', color: '#FFFFFF' }}>
+                {kpis?.dailyAvgKwh || 0}
+              </strong>
+            </div>
           </div>
-          <div>
-            <span style={{ fontSize: '0.7rem', color: '#888888', display: 'block' }}>Total {year - 1}</span>
-            <strong style={{ fontSize: '0.95rem', color: '#38BDF8' }}>
-              {Math.round(kpis?.totalKwhPrior || 0).toLocaleString('es-AR')} kWh
-            </strong>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.7rem', color: '#888888', display: 'block' }}>Variación</span>
-            <strong style={{ fontSize: '0.95rem', color: (kpis?.deltaPercent || 0) <= 0 ? '#4ade80' : '#f87171' }}>
-              {kpis?.deltaPercent !== undefined ? `${kpis.deltaPercent > 0 ? '+' : ''}${kpis.deltaPercent}%` : 'N/A'}
-            </strong>
-          </div>
-          <div>
-            <span style={{ fontSize: '0.7rem', color: '#888888', display: 'block' }}>Prom. Diario</span>
-            <strong style={{ fontSize: '0.95rem', color: '#FFFFFF' }}>
-              {kpis?.dailyAvgKwh || 0} kWh
-            </strong>
-          </div>
+
+          {/* Contenido / Estado de carga */}
+          {isLoading ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '30px 16px',
+              gap: '10px'
+            }}>
+              <RefreshCw size={28} color="#FFC72C" className="animate-spin" />
+              <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#FFC72C' }}>
+                Generando balance sintético...
+              </span>
+            </div>
+          ) : errorMsg ? (
+            <div style={{
+              backgroundColor: 'rgba(218, 41, 28, 0.15)',
+              border: '1px solid #DA291C',
+              borderRadius: '10px',
+              padding: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#FCA5A5',
+              fontSize: '0.82rem'
+            }}>
+              <AlertCircle size={18} color="#DA291C" style={{ flexShrink: 0 }} />
+              <span>{errorMsg}</span>
+            </div>
+          ) : (
+            <div style={{
+              backgroundColor: '#1D1D1D',
+              border: '1px solid #3A3833',
+              borderRadius: '10px',
+              padding: '14px',
+              fontSize: '0.84rem',
+              lineHeight: '1.5',
+              color: '#E0E0E0',
+              whiteSpace: 'pre-wrap',
+              fontFamily: 'inherit'
+            }}>
+              {reportMarkdown}
+            </div>
+          )}
         </div>
 
-        {/* Contenido / Estado de carga */}
-        {isLoading ? (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '40px 16px',
-            gap: '12px'
-          }}>
-            <RefreshCw size={32} color="#FFC72C" className="animate-spin" />
-            <span style={{ fontSize: '0.95rem', fontWeight: '800', color: '#FFC72C' }}>
-              Gemini analizando historial y anomalías...
-            </span>
-            <p style={{ fontSize: '0.78rem', color: '#A0A0A0', textAlign: 'center', maxWidth: '380px', margin: 0 }}>
-              Auditando consumos diarios, detectando desvíos técnicos y formulando recomendaciones operativas.
-            </p>
-          </div>
-        ) : errorMsg ? (
-          <div style={{
-            backgroundColor: 'rgba(218, 41, 28, 0.15)',
-            border: '1.5px solid #DA291C',
-            borderRadius: '12px',
-            padding: '14px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            color: '#FCA5A5',
-            fontSize: '0.88rem'
-          }}>
-            <AlertCircle size={20} color="#DA291C" style={{ flexShrink: 0 }} />
-            <span>{errorMsg}</span>
-          </div>
-        ) : (
-          <div style={{
-            backgroundColor: '#1D1D1D',
-            border: '1px solid #3A3833',
-            borderRadius: '12px',
-            padding: '18px',
-            marginBottom: '16px',
-            fontSize: '0.88rem',
-            lineHeight: '1.6',
-            color: '#E0E0E0',
-            whiteSpace: 'pre-wrap',
-            fontFamily: 'inherit'
-          }}>
-            {reportMarkdown}
-          </div>
-        )}
-
-        {/* Footer Actions */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: 'auto' }}>
+        {/* Footer Fijo con Botones de Acción */}
+        <div style={{
+          padding: '12px 16px',
+          borderTop: '1px solid #3A3833',
+          backgroundColor: '#1E1C18',
+          display: 'flex',
+          gap: '8px',
+          flexShrink: 0
+        }}>
           <button
             type="button"
             onClick={handleGenerate}
             disabled={isLoading}
             className="btn-secondary"
             style={{
-              padding: '10px 14px',
-              borderRadius: '10px',
-              fontSize: '0.85rem',
+              padding: '8px 12px',
+              minHeight: '42px',
+              borderRadius: '8px',
+              fontSize: '0.8rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '5px'
             }}
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={14} />
             Regenerar
           </button>
 
@@ -232,16 +267,17 @@ export default function AiAuditModal({
             disabled={isLoading || !reportMarkdown}
             className="btn-secondary"
             style={{
-              padding: '10px 14px',
-              borderRadius: '10px',
-              fontSize: '0.85rem',
+              padding: '8px 12px',
+              minHeight: '42px',
+              borderRadius: '8px',
+              fontSize: '0.8rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '5px',
               color: copied ? '#4ade80' : '#FFFFFF'
             }}
           >
-            {copied ? <Check size={15} color="#4ade80" /> : <Copy size={15} />}
+            {copied ? <Check size={14} color="#4ade80" /> : <Copy size={14} />}
             {copied ? '¡Copiado!' : 'Copiar'}
           </button>
 
@@ -252,23 +288,22 @@ export default function AiAuditModal({
             className="btn-mcd-yellow"
             style={{
               flex: 1,
-              minWidth: '160px',
-              padding: '10px 16px',
-              borderRadius: '10px',
-              fontSize: '0.88rem',
+              padding: '8px 14px',
+              minHeight: '42px',
+              borderRadius: '8px',
+              fontSize: '0.84rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px',
+              gap: '6px',
               fontWeight: '800'
             }}
           >
-            <Send size={16} />
-            WhatsApp Gerencial
+            <Send size={15} />
+            WhatsApp
           </button>
         </div>
       </div>
     </div>
   );
 }
-

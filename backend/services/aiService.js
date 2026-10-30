@@ -131,31 +131,55 @@ Responde ÚNICAMENTE un objeto JSON:
 }
 
 /**
- * Genera análisis de consumo, anomalías y recomendaciones gerenciales.
+ * Genera análisis de consumo, anomalías y recomendaciones gerenciales (Conciso para Coordinadores).
  */
-async function generateConsumptionAudit({ storeName, monthName, year, kpis = {}, anomalies = [], dailySummary = [] }) {
-  const prompt = `Sos un consultor Senior de Eficiencia Energética para McDonald's Argentina (Arcos Dorados).
-Elaborá un diagnóstico ejecutivo conciso y técnico sobre el consumo eléctrico del mes de ${monthName} ${year} para el local ${storeName || 'Red Global'}.
+async function generateConsumptionAudit({ storeName, monthName, year, kpis = {}, anomalies = [], patternInsights = {} }) {
+  const { weekendAvgKwh, weekdayAvgKwh, topHighDays = [], targetKwh, meetsTarget } = patternInsights;
 
-Datos del período:
-- Total Consumo ${year}: ${kpis.totalKwhCurrent?.toLocaleString('es-AR') || 0} kWh
-- Total Consumo ${year - 1}: ${kpis.totalKwhPrior?.toLocaleString('es-AR') || 0} kWh
-- Variación Interanual: ${kpis.deltaPercent !== undefined ? kpis.deltaPercent.toFixed(2) + '%' : 'N/A'} (${kpis.deltaKwh !== undefined ? kpis.deltaKwh.toFixed(1) + ' kWh' : ''})
-- Promedio Diario Real: ${kpis.dailyAvgKwh?.toFixed(1) || 0} kWh/día
-- Días con Alertas/Anomalías: ${anomalíasFormat(anomalies)}
+  const topDaysText = topHighDays.length > 0
+    ? topHighDays.map(d => `- ${d.dayName} ${d.day} de ${monthName}: ${d.kwh.toLocaleString('es-AR')} kWh (${d.diffVsPrevYear > 0 ? '+' : ''}${d.diffVsPrevYear?.toFixed(1)} kWh vs año anterior)`).join('\n')
+    : 'No hay registros suficientes de días pico.';
 
-Estructurá la respuesta en Markdown limpio:
-### 1. Diagnóstico Ejecutivo
-(Evaluación del desempeño en 2-3 oraciones técnicas directas indicando si hubo sobreconsumo o ahorro real)
+  const weekendComparison = (weekendAvgKwh && weekdayAvgKwh)
+    ? `Promedio fin de semana: ${weekendAvgKwh.toLocaleString('es-AR')} kWh/día vs Días hábiles: ${weekdayAvgKwh.toLocaleString('es-AR')} kWh/día (Diferencia: ${(weekendAvgKwh - weekdayAvgKwh > 0 ? '+' : '')}${(weekendAvgKwh - weekdayAvgKwh).toFixed(1)} kWh)`
+    : 'Datos insuficientes para comparar fines de semana.';
 
-### 2. Hallazgos Críticos y Desvíos
-(Lista de puntos destacados: días con picos anormales, ceros en el medidor, o fines de semana con comportamiento inusual)
+  const prompt = `Sos el Coordinador de Mantenimiento de McDonald's Argentina (Arcos Dorados).
+Elaborá un reporte de auditoría energética BREVE, SINTÉTICO Y DIRECTO para el coordinador sobre el local ${storeName || 'Red Global'} en ${monthName} ${year}.
 
-### 3. Recomendaciones Operativas para Mantenimiento
-(Recomendaciones técnicas directas: revisión de condensadores de frío, horarios de freezers/turn-on, chequeo de iluminación nocturna o calibración del TC)`;
+Métricas consolidadas reales:
+- Consumo ${year}: ${kpis.totalKwhCurrent?.toLocaleString('es-AR') || 0} kWh
+- Consumo ${year - 1}: ${kpis.totalKwhPrior?.toLocaleString('es-AR') || 0} kWh
+- Variación interanual: ${kpis.deltaPercent !== undefined ? (kpis.deltaPercent > 0 ? '+' : '') + kpis.deltaPercent.toFixed(2) + '%' : 'N/A'} (${kpis.deltaKwh !== undefined ? (kpis.deltaKwh > 0 ? '+' : '') + kpis.deltaKwh.toFixed(1) + ' kWh' : ''})
+- Meta corporativa (-3% vs ${year - 1}): Meta de ${targetKwh ? targetKwh.toLocaleString('es-AR') + ' kWh' : 'N/A'} (${meetsTarget ? 'CUMPLE META' : 'NO CUMPLE META'})
+- Promedio diario: ${kpis.dailyAvgKwh?.toFixed(1) || 0} kWh/día
+- Comparativa Fines de semana vs Días de semana: ${weekendComparison}
+- Días con mayor consumo registrado:
+${topDaysText}
+- Alertas / Incongruencias detectadas: ${anomalíasFormat(anomalies)}
+
+REGLAS DE ORO:
+1. MÁXIMO 10 a 14 LÍNEAS TOTALES. Nada de introducciones ni párrafos largos de teoría.
+2. Enfocate exclusivamente en el balance de consumo, ahorro/sobreconsumo y el comportamiento en fines de semana o feriados.
+3. Si un día pico coincide con fin de semana o feriado nacional (ej: 12 de Octubre, fines de semana largos), marcalo puntualmente.
+4. Prohibido inventar supuestos sobre equipos (no inventes fotosensibles, freidoras o anomalías que no existieron).
+
+Estructura obligatoria en Markdown:
+📊 *Balance y Ahorro:*
+- Consumo: ${kpis.totalKwhCurrent?.toLocaleString('es-AR') || 0} kWh vs ${kpis.totalKwhPrior?.toLocaleString('es-AR') || 0} kWh (${kpis.deltaPercent > 0 ? '+' : ''}${kpis.deltaPercent?.toFixed(1)}%)
+- Meta -3%: [CUMPLE con ahorro de X kWh / NO CUMPLE por exceso de X kWh]
+- Promedio: ${kpis.dailyAvgKwh?.toFixed(1) || 0} kWh/día
+
+📅 *Fines de Semana, Feriados y Picos:*
+- Fines de semana vs Semana: [Síntesis en 1 línea del promedio y si los findes traccionaron al alza]
+- Días con mayor demanda: [Citar brevemente las 1-2 fechas pico con día de la semana y si fue feriado/finde]
+${anomalies.length > 0 ? '- Desvíos/Alertas: [1 línea con las alertas registradas]' : ''}
+
+⚡ *Acción Operativa:*
+- [1 sola recomendación concreta y accionable para el técnico de guardia en base al sobreconsumo o felicitación técnica por ahorro]`;
 
   const response = await generateWithFallback(prompt, {
-    temperature: 0.2
+    temperature: 0.1
   });
 
   return {

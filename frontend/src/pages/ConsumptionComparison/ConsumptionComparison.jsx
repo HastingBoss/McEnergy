@@ -147,6 +147,52 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
     (r) => r.currentDateStr <= yesterdayStr && !r.currentEntry
   ).length;
 
+  // Métricas avanzadas para la Auditoría IA del Coordinador
+  const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const recordedDays = comparisonRows.filter((r) => r.currentCons !== null);
+
+  const weekendDays = recordedDays.filter((r) => {
+    const d = new Date(r.currentDateStr + 'T12:00:00');
+    return d.getDay() === 0 || d.getDay() === 6;
+  });
+  const weekdayDays = recordedDays.filter((r) => {
+    const d = new Date(r.currentDateStr + 'T12:00:00');
+    return d.getDay() !== 0 && d.getDay() !== 6;
+  });
+
+  const weekendAvgKwh = weekendDays.length > 0
+    ? Number((weekendDays.reduce((acc, r) => acc + r.currentCons, 0) / weekendDays.length).toFixed(1))
+    : null;
+  const weekdayAvgKwh = weekdayDays.length > 0
+    ? Number((weekdayDays.reduce((acc, r) => acc + r.currentCons, 0) / weekdayDays.length).toFixed(1))
+    : null;
+
+  const topHighDays = [...recordedDays]
+    .sort((a, b) => b.currentCons - a.currentCons)
+    .slice(0, 3)
+    .map((r) => {
+      const d = new Date(r.currentDateStr + 'T12:00:00');
+      return {
+        date: r.currentDateStr,
+        day: r.day,
+        dayName: dayNames[d.getDay()],
+        kwh: r.currentCons,
+        diffVsPrevYear: r.diff,
+        diffPct: r.diffPct
+      };
+    });
+
+  const targetKwh = totalPrevMonth > 0 ? Number((totalPrevMonth * 0.97).toFixed(1)) : null;
+  const meetsTarget = targetKwh !== null ? totalCurrentMonth <= targetKwh : null;
+
+  const patternInsights = {
+    weekendAvgKwh,
+    weekdayAvgKwh,
+    topHighDays,
+    targetKwh,
+    meetsTarget
+  };
+
   // Abrir modal para un día específico (bloqueo estricto para fechas futuras)
   const handleOpenDayModal = (row) => {
     if (!row || row.currentDateStr > todayStr) return;
@@ -691,6 +737,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
           kwh: r.currentCons,
           reason: r.currentCons === 0 ? 'Consumo 0 kWh' : `Pico elevado (${r.currentCons} kWh)`
         }))}
+        patternInsights={patternInsights}
       />
     </div>
   );

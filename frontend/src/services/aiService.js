@@ -55,11 +55,11 @@ export async function parseUnstructuredReadings(rawText, validStores = []) {
 /**
  * Genera un diagnóstico y auditoría ejecutiva de consumos con recomendaciones.
  */
-export async function generateConsumptionAudit({ storeName, monthName, year, kpis, anomalies, dailySummary }) {
+export async function generateConsumptionAudit({ storeName, monthName, year, kpis, anomalies, dailySummary, patternInsights }) {
   const response = await fetch(`${API_BASE}/api/ai/analyze-consumption`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ storeName, monthName, year, kpis, anomalies, dailySummary })
+    body: JSON.stringify({ storeName, monthName, year, kpis, anomalies, dailySummary, patternInsights })
   });
 
   if (!response.ok) {

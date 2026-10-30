@@ -37,14 +37,15 @@ router.post('/parse-readings', async (req, res) => {
 // POST /api/ai/analyze-consumption - Diagnóstico y auditoría gerencial
 router.post('/analyze-consumption', async (req, res) => {
   try {
-    const { storeName, monthName, year, kpis, anomalies, dailySummary } = req.body;
+    const { storeName, monthName, year, kpis, anomalies, dailySummary, patternInsights } = req.body;
     const data = await aiService.generateConsumptionAudit({
       storeName,
       monthName,
       year,
       kpis,
       anomalies,
-      dailySummary
+      dailySummary,
+      patternInsights
     });
     res.json(data);
   } catch (error) {
