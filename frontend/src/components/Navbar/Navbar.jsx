@@ -30,9 +30,8 @@ export default function Navbar() {
             style={{
               width: '36px',
               height: '36px',
-              borderRadius: '10px',
-              objectFit: 'cover',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)'
+              borderRadius: '50%',
+              objectFit: 'contain'
             }}
           />
           <div>
