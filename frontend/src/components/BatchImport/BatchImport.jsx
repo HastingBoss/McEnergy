@@ -6,10 +6,12 @@ import {
   FileText,
   HelpCircle,
   RefreshCw,
-  Trash2
+  Trash2,
+  Sparkles
 } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import { useStore } from '../../context/StoreContext';
+import AiTextParserModal from '../AiTextParserModal/AiTextParserModal';
 
 export default function BatchImport({ onImportSuccess }) {
   const { stores } = useStore();
@@ -17,6 +19,7 @@ export default function BatchImport({ onImportSuccess }) {
   const [parsedRows, setParsedRows] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
+  const [isAiParserOpen, setIsAiParserOpen] = useState(false);
 
   // Parsear fecha flexible (YYYY-MM-DD o DD/MM/YYYY)
   const normalizeDate = (raw) => {
@@ -188,21 +191,43 @@ DEN, 2026-10-12, 43120.4`;
           </p>
         </div>
 
-        <button
-          onClick={handleLoadExample}
-          style={{
-            backgroundColor: '#262626',
-            border: '1px solid #383838',
-            color: '#FFC72C',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            fontSize: '0.8rem',
-            fontWeight: '700',
-            cursor: 'pointer'
-          }}
-        >
-          Cargar Ejemplo
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setIsAiParserOpen(true)}
+            style={{
+              backgroundColor: '#1D1D1D',
+              border: '1.5px solid #FFC72C',
+              color: '#FFC72C',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '0.8rem',
+              fontWeight: '800',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Sparkles size={14} />
+            Estructurar con IA
+          </button>
+
+          <button
+            onClick={handleLoadExample}
+            style={{
+              backgroundColor: '#262626',
+              border: '1px solid #383838',
+              color: '#CCCCCC',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '0.8rem',
+              fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            Cargar Ejemplo
+          </button>
+        </div>
       </div>
 
       {statusMessage && (
@@ -351,6 +376,14 @@ AR3, 2026-10-12, 888500.0`}
           </button>
         </div>
       )}
+
+      {/* Modal Parser Inteligente IA */}
+      <AiTextParserModal
+        isOpen={isAiParserOpen}
+        onClose={() => setIsAiParserOpen(false)}
+        stores={stores}
+        onApplyText={(formatted) => handleParseText(formatted)}
+      />
     </div>
   );
 }

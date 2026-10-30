@@ -19,6 +19,7 @@ import { fetchMonthlyComparison } from '../../services/meterService';
 import { downloadReportFile } from '../../services/reportExportService';
 import DayEditEstimateModal from '../../components/DayEditEstimateModal/DayEditEstimateModal';
 import BatchEstimateModal from '../../components/BatchEstimateModal/BatchEstimateModal';
+import AiAuditModal from '../../components/AiAuditModal/AiAuditModal';
 
 const MONTH_NAMES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -44,6 +45,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
     prevYearEntry: null
   });
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isAiAuditOpen, setIsAiAuditOpen] = useState(false);
 
   useEffect(() => {
     if (currentStore?.id) {
@@ -267,6 +269,27 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
           >
             <FileSpreadsheet size={16} />
             {isExporting ? '...' : 'Excel'}
+          </button>
+
+          <button
+            onClick={() => setIsAiAuditOpen(true)}
+            style={{
+              backgroundColor: '#1D1D1D',
+              border: '1.5px solid #FFC72C',
+              color: '#FFC72C',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.82rem',
+              fontWeight: '800',
+              cursor: 'pointer'
+            }}
+            title="Generar auditoría y recomendaciones ejecutivas con Gemini IA"
+          >
+            <Sparkles size={16} />
+            Auditoría IA
           </button>
         </div>
       </div>
@@ -646,6 +669,28 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
         currentYearData={currentYearData}
         prevYearData={prevYearData}
         onCompleted={loadComparison}
+      />
+
+      {/* Modal de Auditoría Inteligente IA (Gemini) */}
+      <AiAuditModal
+        isOpen={isAiAuditOpen}
+        onClose={() => setIsAiAuditOpen(false)}
+        storeName={currentStore?.name}
+        monthName={MONTH_NAMES[selectedMonth - 1]}
+        year={selectedYear}
+        kpis={{
+          totalKwhCurrent: totalCurrentMonth,
+          totalKwhPrior: totalPrevMonth,
+          deltaPercent: parseFloat(netDiffPct),
+          deltaKwh: netDiff,
+          dailyAvgKwh: parseFloat(currentDailyAvg)
+        }}
+        anomalies={comparisonRows.filter(r => r.isAnomaly).map(r => ({
+          day: r.day,
+          date: r.currentDateStr,
+          kwh: r.currentCons,
+          reason: r.currentCons === 0 ? 'Consumo 0 kWh' : `Pico elevado (${r.currentCons} kWh)`
+        }))}
       />
     </div>
   );

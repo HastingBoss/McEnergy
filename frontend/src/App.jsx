@@ -5,6 +5,7 @@ import InstallPWA from './components/InstallPWA/InstallPWA';
 import SplashScreen from './components/SplashScreen/SplashScreen';
 import MeterReading from './pages/MeterReading/MeterReading';
 import GlobalDashboard from './pages/GlobalDashboard/GlobalDashboard';
+import CopilotChat from './components/CopilotChat/CopilotChat';
 
 function AppContent() {
   const { loading } = useStore();
@@ -23,6 +24,7 @@ function AppContent() {
           </Routes>
         </main>
         <InstallPWA />
+        <CopilotChat />
       </Router>
     </>
   );

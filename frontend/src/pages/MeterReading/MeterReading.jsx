@@ -8,8 +8,11 @@ import {
   Send,
   HelpCircle,
   Zap,
-  ArrowRight
+  ArrowRight,
+  Camera,
+  Sparkles
 } from 'lucide-react';
+import MeterOcrModal from '../../components/MeterOcrModal/MeterOcrModal';
 import { useStore } from '../../context/StoreContext';
 import {
   calculateKwh,
@@ -31,6 +34,7 @@ export default function MeterReading() {
   const [showConfirmEdit, setShowConfirmEdit] = useState(false);
   const [showAnomalyWarning, setShowAnomalyWarning] = useState(null);
   const [adminNotified, setAdminNotified] = useState(false);
+  const [isOcrOpen, setIsOcrOpen] = useState(false);
 
   const [todayReading, setTodayReading] = useState(null);
   const [previousReading, setPreviousReading] = useState(null);
@@ -204,6 +208,15 @@ export default function MeterReading() {
     });
 
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  // Aplicar lectura reconocida mediante Gemini OCR
+  const handleApplyOcrReading = (val) => {
+    setDisplayValue(String(val));
+    setStatusMessage({
+      type: 'success',
+      text: `✓ Lectura (${val}) detectada automáticamente por Gemini Vision. Verificá y confirmá la carga.`
+    });
   };
 
   const isRegisteredState = Boolean(todayReading) && !isEditing;
@@ -389,15 +402,36 @@ export default function MeterReading() {
           /* ESTADO 2: CAMPO ÚNICO PARA CARGAR (SOLO NÚMEROS) */
           <form onSubmit={handleOpenUploadConfirm}>
             <div style={{ marginBottom: '18px' }}>
-              <label style={{
-                fontSize: '0.88rem',
-                color: '#FFC72C',
-                fontWeight: '800',
-                display: 'block',
-                marginBottom: '10px'
-              }}>
-                {isEditing ? 'Modificar lectura del medidor (Solo números):' : 'Cargar lectura del medidor (Solo números):'}
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <label style={{
+                  fontSize: '0.88rem',
+                  color: '#FFC72C',
+                  fontWeight: '800'
+                }}>
+                  {isEditing ? 'Modificar lectura del medidor:' : 'Cargar lectura del medidor:'}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsOcrOpen(true)}
+                  style={{
+                    backgroundColor: '#1D1D1D',
+                    border: '1px solid #FFC72C',
+                    color: '#FFC72C',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  <Camera size={15} />
+                  Escanear con IA
+                </button>
+              </div>
 
               <div style={{ position: 'relative' }}>
                 <input
@@ -754,6 +788,14 @@ export default function MeterReading() {
           </div>
         </div>
       )}
+
+      {/* Modal OCR Gemini Vision */}
+      <MeterOcrModal
+        isOpen={isOcrOpen}
+        onClose={() => setIsOcrOpen(false)}
+        currentStore={currentStore}
+        onApplyReading={handleApplyOcrReading}
+      />
     </div>
   );
 }

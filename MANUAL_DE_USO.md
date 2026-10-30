@@ -134,3 +134,27 @@ $$\text{calculated\_consumption} = \text{kwh\_reading}_{\text{hoy}} - \text{kwh\
 3. Desplazar hacia abajo y seleccionar **"Agregar al inicio"** (o *"Add to Home Screen"*).
 4. Asignar el nombre `McEnergy` y presionar **Agregar**.
 5. Al abrirla desde la pantalla de inicio, se ejecutará en modo standalone nativo sin barra de navegador y el aviso de instalación no volverá a aparecer.
+
+---
+
+## 5. Módulos de Inteligencia Artificial (Gemini Flash)
+
+McEnergy integra la suite de modelos Gemini Flash (versión configurable 3.5 con fallback automático) en el backend para agilizar la operación y asistir al equipo técnico y de coordinación:
+
+### 5.1 Escaneo Óptico (OCR) del Display del Medidor (`/`)
+- En el formulario diario de carga, el botón **Escanear con IA** permite capturar una foto directa desde la cámara del celular o seleccionar de la galería.
+- El modelo analiza la pantalla de equipos Schneider PM5350 y Circutor CVM-C10, identificando el código de energía activa (`1.8.0` / `kWh`).
+- Devuelve la cifra detectada con nivel de certeza e inserta el valor en el campo de carga para confirmación del técnico (manteniendo validación humana).
+
+### 5.2 Parser de Mensajes de WhatsApp y Notas en Carga Masiva (`/dashboard`)
+- En la pestaña **Carga Masiva**, el botón **Estructurar con IA** permite pegar textos informales o mensajes de chat de guardia.
+- Gemini extrae el local, fecha y lectura normalizándolos en el formato estándar `LOCAL, AAAA-MM-DD, VALOR` para importar directamente en lote.
+
+### 5.3 Auditoría y Recomendaciones Ejecutivas (`/comparison`)
+- En la vista comparativa interanual, el botón **Auditoría IA** genera un diagnóstico técnico del mes analizando totales, variaciones interanuales, desvíos y consumos anómalos.
+- Proporciona hallazgos críticos y recomendaciones de mantenimiento preventivo (revisión de cámaras frigoríficas, iluminación o transformadores de corriente), con botones para copiar o compartir por WhatsApp con gerencia.
+
+### 5.4 McEnergy Copilot (Asistente Técnico 24/7)
+- Botón flotante accesible desde cualquier pantalla.
+- Responde consultas sobre especificaciones de medidores, factores TC por local, procedimientos ante reemplazo de equipos (`is_reset`) y dudas de operación.
+

@@ -43,6 +43,13 @@ Plataforma Web Progresiva (**PWA**) mobile-first orientada a la gestión técnic
 - **Consumo Total Red:** Agregación global de kWh del día frente a la misma fecha del año anterior.
 - **Alerta de Reportes Pendientes:** Detección visual en tiempo real de qué locales aún no cargaron la lectura de la jornada.
 
+### Módulos de Inteligencia Artificial (Gemini Flash)
+
+- **OCR de Display de Medidor (`/`):** Escaneo con visión artificial de pantallas de medidores Schneider PM5350 y Circutor CVM-C10 desde la cámara móvil, detectando el código de energía activa `1.8.0` y auto-completando la lectura con verificación humana.
+- **Parser de Mensajes y Chats (`/dashboard`):** Procesamiento de texto desestructurado (mensajes de WhatsApp o notas informales de técnicos) normalizándolos automáticamente a registros tabulares para importación en lote.
+- **Auditoría Energética Inteligente (`/comparison`):** Diagnóstico automático mensual en lenguaje natural analizando anomalías, picos y desvíos interanuales con recomendaciones de mantenimiento preventivo y exportación a WhatsApp gerencial.
+- **McEnergy Copilot:** Asistente técnico conversacional en tiempo real disponible globalmente para resolver consultas de factores TC, modelos de medidores y procedimientos operativos (`is_reset`).
+
 ---
 
 ## 🛠️ Stack Tecnológico
@@ -51,7 +58,8 @@ Plataforma Web Progresiva (**PWA**) mobile-first orientada a la gestión técnic
 | :--- | :--- |
 | **Frontend** | React 19, Vite 6, Tailwind CSS 4, Lucide Icons, React Router 7 |
 | **Arquitectura Móvil** | Progressive Web App (PWA), Service Worker, Web App Manifest |
-| **Backend API** | Node.js, Express, CORS, Supabase JS Client |
+| **Backend API** | Node.js, Express, CORS, Supabase JS Client, Google Generative AI (`@google/generative-ai`) |
+| **Motor de IA** | Gemini Flash (3.5 primario con fallback automático, Visión Multimodal, Structured JSON) |
 | **Base de Datos** | PostgreSQL 17 (Supabase Managed), PL/pgSQL Triggers, Views, RLS |
 | **Despliegue** | Vercel (Frontend SPA + Backend Serverless) |
 
@@ -104,6 +112,7 @@ VITE_API_URL=https://mc-energy-be.vercel.app
 PORT=3001
 SUPABASE_URL=https://tu-proyecto.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=tu-service-role-secret-key
+GEMINI_API_KEY=tu-api-key-de-gemini
 ```
 
 ### 4. Ejecutar en Desarrollo
