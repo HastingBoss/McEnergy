@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bot, X, Send, Sparkles, User, RefreshCw, ChevronDown } from 'lucide-react';
+import { Bot, X, Send, Sparkles, RefreshCw, ChevronRight } from 'lucide-react';
 import { askCopilot } from '../../services/aiService';
 import { useStore } from '../../context/StoreContext';
 
 const QUICK_PROMPTS = [
   '¿Qué medidores y multiplicadores usan los locales?',
   '¿Cómo registro el cambio o rotura de un medidor?',
-  '¿A qué hora y cómo se realiza la lectura diaria?'
+  '¿A qué hora y cómo se debe realizar la lectura diaria?'
 ];
 
 export default function CopilotChat() {
@@ -15,7 +15,7 @@ export default function CopilotChat() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      text: '¡Hola! Soy McEnergy Copilot. ¿En qué puedo ayudarte con el monitoreo eléctrico, factores de multiplicación o procedimientos de guardia?'
+      text: '¡Hola! Soy McEnergy ChatBot. ¿En qué puedo ayudarte con el monitoreo eléctrico, factores de multiplicación o procedimientos de guardia?'
     }
   ]);
   const [inputText, setInputText] = useState('');
@@ -56,7 +56,7 @@ export default function CopilotChat() {
         { role: 'assistant', text: response.reply || 'No recibí respuesta del servicio.' }
       ]);
     } catch (err) {
-      console.error('Error con Copiloto IA:', err);
+      console.error('Error con McEnergy ChatBot:', err);
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', text: 'Error de comunicación: ' + (err.message || 'No pude procesar la consulta.') }
@@ -68,14 +68,14 @@ export default function CopilotChat() {
 
   return (
     <>
-      {/* Botón Flotante */}
+      {/* Botón Flotante Activar Chat (ubicado por encima de la barra de navegación) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           style={{
             position: 'fixed',
-            bottom: '76px',
-            right: '18px',
+            bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
+            right: '16px',
             zIndex: 990,
             backgroundColor: '#27251F',
             color: '#FFC72C',
@@ -85,7 +85,7 @@ export default function CopilotChat() {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            boxShadow: '0 6px 20px rgba(0, 0, 0, 0.65)',
+            boxShadow: '0 6px 20px rgba(0, 0, 0, 0.75)',
             cursor: 'pointer',
             fontWeight: '800',
             fontSize: '0.86rem',
@@ -94,27 +94,27 @@ export default function CopilotChat() {
           }}
           className="hover:scale-105"
         >
-          <Sparkles size={18} color="#FFC72C" />
-          <span>Copilot IA</span>
+          <Bot size={18} color="#FFC72C" />
+          <span>ChatBot IA</span>
         </button>
       )}
 
-      {/* Modal / Ventana de Chat */}
+      {/* Ventana de Chat (Posicionada arriba del Navbar inferior para no tapar pestañas) */}
       {isOpen && (
         <div style={{
           position: 'fixed',
-          bottom: '20px',
+          bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
           right: '16px',
           left: '16px',
-          maxWidth: '420px',
+          maxWidth: '430px',
           margin: '0 auto',
-          height: '520px',
-          maxHeight: '85vh',
+          height: '510px',
+          maxHeight: 'calc(100dvh - 100px)',
           backgroundColor: '#27251F',
           border: '2px solid #FFC72C',
           borderRadius: '18px',
           zIndex: 1050,
-          boxShadow: '0 18px 40px rgba(0,0,0,0.85)',
+          boxShadow: '0 18px 40px rgba(0,0,0,0.92)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden'
@@ -126,7 +126,8 @@ export default function CopilotChat() {
             borderBottom: '1px solid #3A3833',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            flexShrink: 0
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{
@@ -141,7 +142,7 @@ export default function CopilotChat() {
               </div>
               <div>
                 <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '800', color: '#FFFFFF' }}>
-                  McEnergy Copilot
+                  McEnergy ChatBot
                 </h4>
                 <span style={{ fontSize: '0.7rem', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <span style={{ width: '6px', height: '6px', backgroundColor: '#4ade80', borderRadius: '50%', display: 'inline-block' }} />
@@ -152,12 +153,17 @@ export default function CopilotChat() {
 
             <button
               onClick={() => setIsOpen(false)}
+              aria-label="Cerrar chat"
               style={{
                 background: 'none',
                 border: 'none',
                 color: '#A0A0A0',
                 cursor: 'pointer',
-                padding: '4px'
+                padding: '6px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               <X size={20} />
@@ -230,26 +236,45 @@ export default function CopilotChat() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Prompts (si hay pocos mensajes) */}
-          {messages.length <= 3 && !isTyping && (
-            <div style={{ padding: '0 12px 8px 12px', display: 'flex', gap: '6px', overflowX: 'auto' }}>
+          {/* Preguntas Frecuentes en Lista Vertical (Sin scroll lateral) */}
+          {messages.length <= 2 && !isTyping && (
+            <div style={{
+              padding: '6px 14px 10px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              borderTop: '1px solid #2A2824',
+              backgroundColor: '#1D1D1D'
+            }}>
+              <span style={{ fontSize: '0.68rem', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '800' }}>
+                Preguntas frecuentes:
+              </span>
               {QUICK_PROMPTS.map((prompt, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => handleSendMessage(prompt)}
                   style={{
-                    backgroundColor: '#1D1D1D',
+                    backgroundColor: '#27251F',
                     border: '1px solid #3A3833',
-                    color: '#A0A0A0',
-                    fontSize: '0.72rem',
-                    padding: '5px 8px',
+                    color: '#E0E0E0',
+                    fontSize: '0.78rem',
+                    padding: '8px 12px',
                     borderRadius: '8px',
-                    whiteSpace: 'nowrap',
-                    cursor: 'pointer'
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    lineHeight: '1.3',
+                    minHeight: '38px',
+                    transition: 'all 0.15s ease'
                   }}
+                  className="hover:border-mcd-yellow"
                 >
-                  {prompt}
+                  <span style={{ flex: 1 }}>{prompt}</span>
+                  <ChevronRight size={14} color="#FFC72C" style={{ flexShrink: 0, marginLeft: '6px' }} />
                 </button>
               ))}
             </div>
@@ -266,7 +291,8 @@ export default function CopilotChat() {
               backgroundColor: '#1D1D1D',
               borderTop: '1px solid #3A3833',
               display: 'flex',
-              gap: '8px'
+              gap: '8px',
+              flexShrink: 0
             }}
           >
             <input
@@ -274,7 +300,7 @@ export default function CopilotChat() {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               disabled={isTyping}
-              placeholder="Preguntale algo a McEnergy Copilot..."
+              placeholder="Preguntale algo a McEnergy ChatBot..."
               style={{
                 flex: 1,
                 backgroundColor: '#27251F',
@@ -308,4 +334,3 @@ export default function CopilotChat() {
     </>
   );
 }
-

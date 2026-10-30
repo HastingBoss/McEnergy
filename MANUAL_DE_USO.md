@@ -154,7 +154,7 @@ McEnergy integra la suite de modelos Gemini Flash (versión configurable 3.5 con
 - En la vista comparativa interanual, el botón **Auditoría IA** genera un diagnóstico técnico del mes analizando totales, variaciones interanuales, desvíos y consumos anómalos.
 - Proporciona hallazgos críticos y recomendaciones de mantenimiento preventivo (revisión de cámaras frigoríficas, iluminación o transformadores de corriente), con botones para copiar o compartir por WhatsApp con gerencia.
 
-### 5.4 McEnergy Copilot (Asistente Técnico 24/7)
+### 5.4 McEnergy ChatBot (Asistente Técnico 24/7)
 - Botón flotante accesible desde cualquier pantalla.
 - Responde consultas sobre especificaciones de medidores, factores TC por local, procedimientos ante reemplazo de equipos (`is_reset`) y dudas de operación.
 

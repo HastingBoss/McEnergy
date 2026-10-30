@@ -200,7 +200,7 @@ async function copilotChat({ message, history = [], systemContext = {} }) {
     ? systemContext.stores.map(s => `- ${s.name} (${s.code}): Medidor ${s.meter_model || 'Schneider PM5350'}, Display ${s.display_indicator || '1.8.0'}, TC x${s.meter_multiplier || 1}`).join('\n')
     : 'AR3, AR6, MTD, DEV, DEN con multiplicadores TC x40, x60 o x1.';
 
-  const systemInstruction = `Sos McEnergy Copilot, el asistente técnico especializado en el sistema de control y monitoreo eléctrico de McDonald's Argentina.
+  const systemInstruction = `Sos McEnergy ChatBot, el asistente técnico especializado en el sistema de control y monitoreo eléctrico de McDonald's Argentina.
 Respondé de manera técnica, concisa y directa.
 
 Contexto de la red:
@@ -213,7 +213,7 @@ Procedimientos clave:
 - Comparativa: Se audita el consumo de 2026 frente a 2025 día a día.
 
 Historial de la conversación:
-${(history || []).map(h => `${h.role === 'user' ? 'Usuario' : 'Copilot'}: ${h.text}`).join('\n')}
+${(history || []).map(h => `${h.role === 'user' ? 'Usuario' : 'ChatBot'}: ${h.text}`).join('\n')}
 
 Consulta actual del usuario:
 ${message}`;

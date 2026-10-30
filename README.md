@@ -48,7 +48,7 @@ Plataforma Web Progresiva (**PWA**) mobile-first orientada a la gestión técnic
 - **OCR de Display de Medidor (`/`):** Escaneo con visión artificial de pantallas de medidores Schneider PM5350 y Circutor CVM-C10 desde la cámara móvil, detectando el código de energía activa `1.8.0` y auto-completando la lectura con verificación humana.
 - **Parser de Mensajes y Chats (`/dashboard`):** Procesamiento de texto desestructurado (mensajes de WhatsApp o notas informales de técnicos) normalizándolos automáticamente a registros tabulares para importación en lote.
 - **Auditoría Energética Inteligente (`/comparison`):** Diagnóstico automático mensual en lenguaje natural analizando anomalías, picos y desvíos interanuales con recomendaciones de mantenimiento preventivo y exportación a WhatsApp gerencial.
-- **McEnergy Copilot:** Asistente técnico conversacional en tiempo real disponible globalmente para resolver consultas de factores TC, modelos de medidores y procedimientos operativos (`is_reset`).
+- **McEnergy ChatBot:** Asistente técnico conversacional en tiempo real disponible globalmente para resolver consultas de factores TC, modelos de medidores y procedimientos operativos (`is_reset`).
 
 ---
 
