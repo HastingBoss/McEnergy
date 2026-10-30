@@ -24,22 +24,17 @@ export default function Navbar() {
         zIndex: 100
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            backgroundColor: '#DA291C',
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: '900',
-            color: '#FFC72C',
-            fontSize: '22px',
-            boxShadow: '0 2px 8px rgba(218, 41, 28, 0.4)',
-            fontFamily: 'serif'
-          }}>
-            M
-          </div>
+          <img
+            src="/favicon.png"
+            alt="McEnergy Logo"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              objectFit: 'cover',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)'
+            }}
+          />
           <div>
             <h1 style={{ fontSize: '0.98rem', fontWeight: '800', margin: 0, color: '#FFFFFF', letterSpacing: '-0.2px' }}>
               Control Eléctrico McD

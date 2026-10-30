@@ -43,24 +43,19 @@ export default function SplashScreen({ isReady = true, onFinish }) {
     >
       {/* Contenedor de Logo & Animación de Pulso */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div
+        <img
+          src="/favicon.png"
+          alt="McEnergy Logo"
           className="animate-pulse-glow"
           style={{
-            width: '84px',
-            height: '84px',
-            borderRadius: '22px',
-            backgroundColor: '#DA291C',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 12px 30px rgba(218, 41, 28, 0.45)',
-            border: '2px solid rgba(255, 199, 44, 0.3)'
+            width: '88px',
+            height: '88px',
+            borderRadius: '24px',
+            objectFit: 'cover',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.6)',
+            border: '2px solid rgba(255, 199, 44, 0.4)'
           }}
-        >
-          <span style={{ fontSize: '46px', fontWeight: '900', color: '#FFC72C', lineHeight: 1, fontFamily: 'serif' }}>
-            M
-          </span>
-        </div>
+        />
 
         {/* Icono de energía flotante */}
         <div style={{
