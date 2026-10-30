@@ -4,9 +4,9 @@ import { askCopilot } from '../../services/aiService';
 import { useStore } from '../../context/StoreContext';
 
 const QUICK_PROMPTS = [
-  '¿Qué medidores y multiplicadores usan los locales?',
-  '¿Cómo registro el cambio o rotura de un medidor?',
-  '¿A qué hora y cómo se debe realizar la lectura diaria?'
+  '¿Qué pasa si me olvidé de cargar un día?',
+  'Cargué mal el valor del medidor, ¿cómo lo corrijo?',
+  '¿Qué hago si el medidor fue reemplazado o reseteado?'
 ];
 
 export default function CopilotChat() {
