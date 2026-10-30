@@ -3,14 +3,15 @@ export default function AppFooter() {
     <footer
       style={{
         textAlign: 'center',
-        padding: '16px 12px 28px',
-        color: '#666666',
-        fontSize: '0.74rem',
+        padding: '24px 12px calc(80px + env(safe-area-inset-bottom, 0px))',
+        color: '#777777',
+        fontSize: '0.75rem',
         letterSpacing: '0.2px',
         userSelect: 'none'
       }}
     >
-      Derechos reservados a <strong style={{ color: '#888888', fontWeight: '600' }}>Luca Guerra</strong> @ <span style={{ color: '#FFC72C', fontWeight: '700' }}>McDonald's MTD</span>
+      Derechos reservados a <strong style={{ color: '#AAAAAA', fontWeight: '600' }}>Luca Guerra</strong> @ <span style={{ color: '#FFC72C', fontWeight: '700' }}>McDonald's MTD</span>
     </footer>
   );
 }
+

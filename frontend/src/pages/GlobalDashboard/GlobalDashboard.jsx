@@ -797,9 +797,8 @@ export default function GlobalDashboard() {
             </div>
           </div>
         )}
+        <AppFooter />
       </div>
-
-      <AppFooter />
     </div>
   );
 }
