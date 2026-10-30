@@ -261,7 +261,7 @@ export default function DayEditEstimateModal({
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Zap color="#FFBC0D" size={20} />
+              <Zap color="#FFC72C" size={20} />
               <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#FFFFFF', margin: 0 }}>
                 {currentEntry ? 'Editar Lectura' : 'Cargar / Estimar Día'}
               </h3>
@@ -340,7 +340,7 @@ export default function DayEditEstimateModal({
           }}>
             <div>
               <span style={{ color: '#888' }}>Multiplicador:</span>{' '}
-              <strong style={{ color: '#FFBC0D' }}>x{multiplier}</strong>
+              <strong style={{ color: '#FFC72C' }}>x{multiplier}</strong>
             </div>
             <div>
               <span style={{ color: '#888' }}>Día previo ({estimationContext?.prevReading?.reading_date?.split('-')[2] || '-'}):</span>{' '}
@@ -530,7 +530,7 @@ export default function DayEditEstimateModal({
                   padding: '6px 12px',
                   fontSize: '0.8rem',
                   borderRadius: '6px',
-                  backgroundColor: inputMode === 'display' ? '#FFBC0D' : '#262626',
+                  backgroundColor: inputMode === 'display' ? '#FFC72C' : '#262626',
                   color: inputMode === 'display' ? '#121212' : '#FFFFFF',
                   fontWeight: '700'
                 }}
@@ -544,7 +544,7 @@ export default function DayEditEstimateModal({
                   padding: '6px 12px',
                   fontSize: '0.8rem',
                   borderRadius: '6px',
-                  backgroundColor: inputMode === 'consumption' ? '#FFBC0D' : '#262626',
+                  backgroundColor: inputMode === 'consumption' ? '#FFC72C' : '#262626',
                   color: inputMode === 'consumption' ? '#121212' : '#FFFFFF',
                   fontWeight: '700'
                 }}
@@ -568,7 +568,7 @@ export default function DayEditEstimateModal({
                   style={{
                     fontSize: '1.25rem',
                     fontWeight: '800',
-                    color: '#FFBC0D',
+                    color: '#FFC72C',
                     backgroundColor: '#141414',
                     border: '1px solid #444',
                     padding: '10px 14px'
@@ -590,7 +590,7 @@ export default function DayEditEstimateModal({
                   style={{
                     fontSize: '1.25rem',
                     fontWeight: '800',
-                    color: '#FFBC0D',
+                    color: '#FFC72C',
                     backgroundColor: '#141414',
                     border: '1px solid #444',
                     padding: '10px 14px'
@@ -619,7 +619,7 @@ export default function DayEditEstimateModal({
                 </div>
                 <div>
                   <span style={{ color: '#888888' }}>Consumo resultante:</span>{' '}
-                  <strong style={{ color: liveConsumption !== null ? '#FFBC0D' : '#888888', fontSize: '0.95rem' }}>
+                  <strong style={{ color: liveConsumption !== null ? '#FFC72C' : '#888888', fontSize: '0.95rem' }}>
                     {liveConsumption !== null ? `${liveConsumption.toFixed(1)} kWh` : (isReset ? 'Lectura Base (0 kWh)' : 'Sin cálculo')}
                   </strong>
                 </div>
@@ -633,7 +633,7 @@ export default function DayEditEstimateModal({
                   type="checkbox"
                   checked={isEstimated}
                   onChange={(e) => setIsEstimated(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: '#FFBC0D' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#FFC72C' }}
                 />
                 <span>
                   Marcar como <strong>lectura estimada</strong> (se identificará como [Est] en la comparativa)
@@ -645,7 +645,7 @@ export default function DayEditEstimateModal({
                   type="checkbox"
                   checked={isReset}
                   onChange={(e) => setIsReset(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: '#FFBC0D' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#FFC72C' }}
                 />
                 <span>
                   Marcar como <strong>lectura base / reinicio</strong> (no calcula consumo frente al día anterior)
@@ -753,7 +753,7 @@ export default function DayEditEstimateModal({
                   type="submit"
                   disabled={saving || !displayValue || isFutureDate}
                   style={{
-                    backgroundColor: isFutureDate ? '#444444' : '#FFBC0D',
+                    backgroundColor: isFutureDate ? '#444444' : '#FFC72C',
                     color: isFutureDate ? '#888888' : '#121212',
                     cursor: isFutureDate ? 'not-allowed' : 'pointer',
                     padding: '8px 16px',

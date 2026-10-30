@@ -1,14 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #DA291C;
-  --color-secondary: #FFBC0D;
-  --color-bg-dark: #121212;
-  --color-surface-dark: #1E1E1E;
+  /* Paleta Oficial McDonald's Argentina (Identidad Visual) */
+  --color-mcd-yellow: #FFC72C;
+  --color-mcd-red: #DA291C;
+  --color-mcd-dark: #1D1D1D;
+  --color-mcd-surface: #27251F;
+  --color-mcd-light: #F8F9FA;
+  --color-mcd-border: #3A3833;
   --color-text-main: #FFFFFF;
   --color-text-muted: #A0A0A0;
-  --color-border: #2D2D2D;
-  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  
+  /* Aliases para compatibilidad */
+  --color-primary: #FFC72C;
+  --color-secondary: #FFC72C;
+  --color-alert: #DA291C;
+  --color-bg-dark: #1D1D1D;
+  --color-surface-dark: #27251F;
+  --color-border: #3A3833;
+
+  --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 * {
@@ -17,7 +28,7 @@
   padding: 0;
   -webkit-tap-highlight-color: transparent;
   scrollbar-width: thin;
-  scrollbar-color: #383838 #141414;
+  scrollbar-color: #383838 #1D1D1D;
 }
 
 /* Custom dark scrollbars for WebKit (Chrome, Safari, Edge) */
@@ -32,12 +43,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #383838;
+  background: #3A3833;
   border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #FFBC0D;
+  background: var(--color-mcd-yellow);
 }
 
 ::-webkit-scrollbar-corner {
@@ -46,7 +57,7 @@
 
 body {
   font-family: var(--font-family);
-  background-color: var(--color-bg-dark);
+  background-color: var(--color-mcd-dark);
   color: var(--color-text-main);
   min-height: 100vh;
   min-height: 100dvh;
@@ -54,6 +65,8 @@ body {
   flex-direction: column;
   overflow-x: hidden;
   user-select: none;
+  touch-action: manipulation;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
@@ -63,7 +76,7 @@ body {
   min-height: 100dvh;
 }
 
-/* Form controls & inputs */
+/* Form controls & inputs - Mobile-First & Alto Contraste */
 input, select, textarea, button {
   font-family: inherit;
   font-size: 1rem;
@@ -71,68 +84,145 @@ input, select, textarea, button {
 
 input, select {
   background-color: #262626;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-mcd-border);
   color: #FFFFFF;
-  border-radius: 8px;
-  padding: 10px 14px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-height: 48px;
   outline: none;
   width: 100%;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 input:focus, select:focus {
-  border-color: var(--color-secondary);
+  border-color: var(--color-mcd-yellow);
+  box-shadow: 0 0 0 2px rgba(255, 199, 44, 0.2);
 }
 
-/* Touch friendly button base */
+/* Touch-friendly button base - Mínimo 48px con Feedback Háptico Visual */
 button {
   cursor: pointer;
   border: none;
-  border-radius: 8px;
-  padding: 10px 16px;
-  font-weight: 600;
+  border-radius: 10px;
+  min-height: 48px;
+  padding: 10px 18px;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: transform 0.1s ease, background-color 0.2s ease;
+  touch-action: manipulation;
+  will-change: transform;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-button:active {
-  transform: scale(0.97);
+/* Micro-interacción táctil nativa PWA */
+button:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
-.btn-primary {
-  background-color: var(--color-primary);
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Botón Primario: Amarillo McDonald's con texto oscuro de alto contraste */
+.btn-primary, .btn-mcd-yellow {
+  background-color: var(--color-mcd-yellow);
+  color: #121212;
+  font-weight: 800;
+}
+
+.btn-primary:hover:not(:disabled), .btn-mcd-yellow:hover:not(:disabled) {
+  background-color: #E5B224;
+}
+
+/* Botón de Alerta / Acento: Rojo McDonald's */
+.btn-alert, .btn-mcd-red {
+  background-color: var(--color-mcd-red);
   color: #FFFFFF;
+  font-weight: 800;
 }
 
-.btn-primary:hover {
+.btn-alert:hover:not(:disabled), .btn-mcd-red:hover:not(:disabled) {
   background-color: #B91C1C;
 }
 
-.btn-accent {
-  background-color: var(--color-secondary);
-  color: #121212;
-}
-
-.btn-accent:hover {
-  background-color: #E5A80A;
-}
-
 .btn-secondary {
-  background-color: #2A2A2A;
-  color: #E0E0E0;
+  background-color: #2C2A24;
+  color: #FFFFFF;
+  border: 1px solid var(--color-mcd-border);
 }
 
-.btn-secondary:hover {
-  background-color: #383838;
+.btn-secondary:hover:not(:disabled) {
+  background-color: #38352E;
 }
 
-/* Card container */
+/* Contenedor Card de Alto Contraste */
 .card {
-  background-color: var(--color-surface-dark);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
+  background-color: var(--color-mcd-surface);
+  border: 1px solid var(--color-mcd-border);
+  border-radius: 14px;
   padding: 16px;
+  will-change: transform, opacity;
+}
+
+/* Micro-interacción táctil en cards clicables */
+.card-interactive {
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.2s ease;
+  will-change: transform;
+}
+
+.card-interactive:active {
+  transform: scale(0.98);
+  border-color: var(--color-mcd-yellow);
+}
+
+/* Animaciones PWA aceleradas por hardware */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 12px rgba(255, 199, 44, 0.4));
+  }
+  50% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 24px rgba(255, 199, 44, 0.8));
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+  will-change: opacity;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+  will-change: transform;
 }

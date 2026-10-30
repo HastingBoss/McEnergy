@@ -92,7 +92,7 @@ export default function InstallPWA() {
           <h3>Instalar McEnergy</h3>
           {isIosPrompt ? (
             <p style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-              Tocá <Share size={13} color="#38BDF8" /> y luego <strong>"Agregar al inicio"</strong> <PlusSquare size={13} color="#FFBC0D" />
+              Tocá <Share size={13} color="#38BDF8" /> y luego <strong>"Agregar al inicio"</strong> <PlusSquare size={13} color="#FFC72C" />
             </p>
           ) : (
             <p>Acceso directo desde la pantalla de inicio.</p>

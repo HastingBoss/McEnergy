@@ -1,14 +1,17 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { StoreProvider } from './context/StoreContext';
+import { StoreProvider, useStore } from './context/StoreContext';
 import Navbar from './components/Navbar/Navbar';
 import InstallPWA from './components/InstallPWA/InstallPWA';
+import SplashScreen from './components/SplashScreen/SplashScreen';
 import MeterReading from './pages/MeterReading/MeterReading';
-import ConsumptionComparison from './pages/ConsumptionComparison/ConsumptionComparison';
 import GlobalDashboard from './pages/GlobalDashboard/GlobalDashboard';
 
-export default function App() {
+function AppContent() {
+  const { loading } = useStore();
+
   return (
-    <StoreProvider>
+    <>
+      <SplashScreen isReady={!loading} />
       <Router>
         <Navbar />
         <main style={{ flex: 1 }}>
@@ -21,6 +24,14 @@ export default function App() {
         </main>
         <InstallPWA />
       </Router>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <StoreProvider>
+      <AppContent />
     </StoreProvider>
   );
 }

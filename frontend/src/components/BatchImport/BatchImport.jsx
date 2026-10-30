@@ -180,7 +180,7 @@ DEN, 2026-10-12, 43120.4`;
       <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-            <UploadCloud color="#FFBC0D" size={24} />
+            <UploadCloud color="#FFC72C" size={24} />
             Carga Masiva por Lote de Texto
           </h2>
           <p style={{ fontSize: '0.82rem', color: '#A0A0A0', margin: '3px 0 0 0' }}>
@@ -193,7 +193,7 @@ DEN, 2026-10-12, 43120.4`;
           style={{
             backgroundColor: '#262626',
             border: '1px solid #383838',
-            color: '#FFBC0D',
+            color: '#FFC72C',
             padding: '6px 12px',
             borderRadius: '8px',
             fontSize: '0.8rem',
@@ -254,7 +254,7 @@ AR3, 2026-10-12, 888500.0`}
             backgroundColor: '#0A0A0A',
             border: '2px solid #2D2D2D',
             borderRadius: '10px',
-            color: '#FFBC0D',
+            color: '#FFC72C',
             fontFamily: 'monospace',
             fontSize: '0.9rem',
             padding: '12px',
@@ -302,7 +302,7 @@ AR3, 2026-10-12, 888500.0`}
                     }}
                   >
                     <td style={{ padding: '6px 8px', color: '#888888' }}>{row.lineNumber}</td>
-                    <td style={{ padding: '6px 8px', fontWeight: '700', color: row.store ? '#FFBC0D' : '#ef4444' }}>
+                    <td style={{ padding: '6px 8px', fontWeight: '700', color: row.store ? '#FFC72C' : '#ef4444' }}>
                       {row.code}
                     </td>
                     <td style={{ padding: '6px 8px', color: '#CCCCCC' }}>{row.date || '-'}</td>
@@ -331,7 +331,7 @@ AR3, 2026-10-12, 888500.0`}
             disabled={isProcessing || validRows.length === 0}
             style={{
               width: '100%',
-              backgroundColor: validRows.length > 0 ? '#FFBC0D' : '#333333',
+              backgroundColor: validRows.length > 0 ? '#FFC72C' : '#333333',
               color: validRows.length > 0 ? '#121212' : '#888888',
               padding: '14px',
               borderRadius: '10px',

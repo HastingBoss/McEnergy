@@ -14,7 +14,12 @@ import {
   FileSpreadsheet,
   Download,
   CheckCircle2,
-  UploadCloud
+  UploadCloud,
+  Menu,
+  X,
+  ChevronRight,
+  ShieldCheck,
+  Building2
 } from 'lucide-react';
 import { getPreviousYearDate } from '../../services/meterService';
 import { useStore } from '../../context/StoreContext';
@@ -27,6 +32,23 @@ const MONTH_NAMES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
+const NAV_SECTIONS = [
+  {
+    group: 'MONITOREO DE RED',
+    items: [
+      { id: 'network', label: 'Red Global (Día)', desc: 'Consumo diario consolidado', icon: BarChart3 },
+      { id: 'comparison', label: 'Comparativa Anual', desc: 'Evolución mes a mes y estimaciones', icon: TrendingUp }
+    ]
+  },
+  {
+    group: 'GESTIÓN Y REPORTES',
+    items: [
+      { id: 'batch', label: 'Carga Masiva', desc: 'Importación de mediciones en lote', icon: UploadCloud },
+      { id: 'export', label: 'Exportar Excel', desc: 'Informes gerenciales estructurados', icon: FileSpreadsheet }
+    ]
+  }
+];
+
 export default function GlobalDashboard() {
   const { stores: allStores, currentStore } = useStore();
   const now = new Date();
@@ -35,8 +57,9 @@ export default function GlobalDashboard() {
   const [prevYearReadings, setPrevYearReadings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Tab unificada: 'network' (Red Global Día), 'comparison' (Comparativa Anual) o 'export' (Exportar Informe)
+  // Navegación: 'network' | 'comparison' | 'batch' | 'export'
   const [activeTab, setActiveTab] = useState('network');
+  const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
 
   // Estado para exportación a Excel
   const [exportMonth, setExportMonth] = useState(now.getMonth() + 1);
@@ -94,6 +117,7 @@ export default function GlobalDashboard() {
     sessionStorage.removeItem('mcd_dashboard_unlocked');
     setIsAuthenticated(false);
     setPinInput('');
+    setIsSidebarOpenMobile(false);
   };
 
   const loadDashboardData = async () => {
@@ -119,82 +143,87 @@ export default function GlobalDashboard() {
     }
   };
 
-  // PANTALLA DE BLOQUEO / INGRESO DE CLAVE
+  // PANTALLA DE ACCESO CON PIN (BLOQUEADA)
   if (!isAuthenticated) {
     return (
       <div style={{
-        padding: '16px',
+        padding: '24px 16px',
         maxWidth: '420px',
-        margin: '40px auto 0',
-        paddingBottom: '90px'
+        margin: '40px auto 90px auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
       }}>
-        <div style={{
-          backgroundColor: '#1E1E1E',
-          border: '1px solid #333333',
-          borderRadius: '16px',
+        <div className="card animate-slide-up" style={{
+          width: '100%',
+          backgroundColor: '#27251F',
+          border: '1px solid #3A3833',
+          borderRadius: '18px',
           padding: '28px 20px',
-          textAlign: 'center',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.6)'
+          boxShadow: '0 12px 36px rgba(0,0,0,0.7)',
+          textAlign: 'center'
         }}>
           <div style={{
-            backgroundColor: '#262626',
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
+            width: '64px',
+            height: '64px',
+            backgroundColor: '#DA291C',
+            borderRadius: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 16px',
-            color: '#FFBC0D'
+            margin: '0 auto 16px auto',
+            color: '#FFC72C',
+            boxShadow: '0 6px 18px rgba(218, 41, 28, 0.4)'
           }}>
-            <Lock size={28} />
+            <Lock size={32} />
           </div>
 
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', margin: '0 0 6px' }}>
-            Panel de Gestión & Auditoría
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', margin: 0 }}>
+            Panel de Control y Red
           </h2>
-          <p style={{ fontSize: '0.85rem', color: '#888888', margin: '0 0 20px' }}>
-            Ingresa la clave de Coordinador o Administrador para acceder a la Red Global y Comparativas.
+          <p style={{ fontSize: '0.82rem', color: '#A0A0A0', marginTop: '6px', marginBottom: '22px' }}>
+            Acceso exclusivo para Coordinadores de Mantenimiento y Auditoría.
           </p>
 
-          <form onSubmit={handleVerifyPin}>
-            <div style={{ position: 'relative', marginBottom: '14px' }}>
+          <form onSubmit={handleVerifyPin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
               <input
                 type="password"
                 inputMode="numeric"
-                required
-                autoFocus
-                placeholder="Ingresar clave..."
+                maxLength={8}
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                disabled={verifyingPin}
+                placeholder="Ingresar PIN"
+                autoFocus
                 style={{
-                  width: '100%',
-                  padding: '14px 14px',
-                  backgroundColor: '#0A0A0A',
-                  border: pinError ? '2px solid #ef4444' : '2px solid #FFBC0D',
-                  borderRadius: '10px',
-                  color: '#FFFFFF',
-                  fontSize: '1.2rem',
-                  fontWeight: '700',
                   textAlign: 'center',
-                  letterSpacing: '3px',
-                  outline: 'none'
+                  fontSize: '1.6rem',
+                  letterSpacing: '8px',
+                  fontWeight: '800',
+                  color: '#FFC72C',
+                  backgroundColor: '#1D1D1D',
+                  border: '1px solid #3A3833',
+                  padding: '12px',
+                  minHeight: '52px',
+                  borderRadius: '12px'
                 }}
               />
             </div>
 
             {pinError && (
               <div style={{
+                color: '#f87171',
+                fontSize: '0.8rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '6px',
-                color: '#f87171',
-                fontSize: '0.82rem',
-                marginBottom: '14px'
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                padding: '8px',
+                borderRadius: '8px',
+                border: '1px solid #ef4444'
               }}>
-                <AlertCircle size={15} />
+                <AlertCircle size={16} />
                 <span>{pinError}</span>
               </div>
             )}
@@ -204,10 +233,11 @@ export default function GlobalDashboard() {
               disabled={verifyingPin || !pinInput}
               style={{
                 width: '100%',
-                backgroundColor: '#FFBC0D',
+                backgroundColor: '#FFC72C',
                 color: '#121212',
-                padding: '14px',
-                borderRadius: '10px',
+                padding: '12px',
+                minHeight: '48px',
+                borderRadius: '12px',
                 fontSize: '1rem',
                 fontWeight: '800',
                 display: 'flex',
@@ -217,7 +247,7 @@ export default function GlobalDashboard() {
               }}
             >
               <KeyRound size={18} />
-              {verifyingPin ? 'Verificando...' : 'Ingresar'}
+              {verifyingPin ? 'Verificando...' : 'Desbloquear Panel'}
             </button>
           </form>
         </div>
@@ -225,466 +255,548 @@ export default function GlobalDashboard() {
     );
   }
 
-  // DASHBOARD DESBLOQUEADO (UNIFICADO)
+  // CÁLCULOS CONSOLIDADOS RED
   const totalCurrent = readings.reduce((acc, curr) => acc + (parseFloat(curr.calculated_consumption) || 0), 0);
   const totalPrev = prevYearReadings.reduce((acc, curr) => acc + (parseFloat(curr.calculated_consumption) || 0), 0);
   const netDiff = totalCurrent - totalPrev;
   const netDiffPct = totalPrev > 0 ? ((netDiff / totalPrev) * 100).toFixed(1) : 0;
   const isSaving = netDiff <= 0;
-
   const averageConsumption = readings.length > 0 ? (totalCurrent / readings.length).toFixed(1) : 0;
 
+  // Título e ícono de la vista activa para el header móvil
+  const currentNavFlat = NAV_SECTIONS.flatMap(g => g.items).find(i => i.id === activeTab);
+  const ActiveNavIcon = currentNavFlat?.icon || BarChart3;
+
   return (
-    <div style={{ padding: '16px', maxWidth: '820px', margin: '0 auto', paddingBottom: '90px' }}>
-      {/* Selector de Pestañas Unificadas */}
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#1D1D1D' }}>
+      {/* Barra Superior Móvil con Botón de Menú en Cascada (< 768px) */}
       <div style={{
+        backgroundColor: '#27251F',
+        borderBottom: '1px solid #3A3833',
+        padding: '10px 16px',
         display: 'flex',
-        backgroundColor: '#1E1E1E',
-        borderRadius: '12px',
-        padding: '4px',
-        marginBottom: '16px',
-        border: '1px solid #2D2D2D'
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        zIndex: 90
       }}>
-        <button
-          onClick={() => setActiveTab('network')}
-          style={{
-            flex: 1,
-            padding: '10px 14px',
-            borderRadius: '8px',
-            fontSize: '0.88rem',
-            fontWeight: '700',
-            backgroundColor: activeTab === 'network' ? '#FFBC0D' : 'transparent',
-            color: activeTab === 'network' ? '#121212' : '#A0A0A0',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            transition: 'all 0.2s ease',
-            cursor: 'pointer'
-          }}
-        >
-          <BarChart3 size={16} />
-          Red Global (Día)
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={() => setIsSidebarOpenMobile(true)}
+            style={{
+              backgroundColor: '#1D1D1D',
+              border: '1px solid #3A3833',
+              borderRadius: '10px',
+              minHeight: '44px',
+              padding: '8px 12px',
+              color: '#FFC72C',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer'
+            }}
+            title="Abrir menú de navegación"
+          >
+            <Menu size={20} />
+            <span style={{ fontSize: '0.85rem', fontWeight: '800' }}>Vistas</span>
+          </button>
 
-        <button
-          onClick={() => setActiveTab('comparison')}
-          style={{
-            flex: 1,
-            padding: '10px 14px',
-            borderRadius: '8px',
-            fontSize: '0.88rem',
-            fontWeight: '700',
-            backgroundColor: activeTab === 'comparison' ? '#FFBC0D' : 'transparent',
-            color: activeTab === 'comparison' ? '#121212' : '#A0A0A0',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            transition: 'all 0.2s ease',
-            cursor: 'pointer'
-          }}
-        >
-          <TrendingUp size={16} />
-          Comparativa Anual
-        </button>
-
-        <button
-          onClick={() => setActiveTab('batch')}
-          style={{
-            flex: 1,
-            padding: '10px 14px',
-            borderRadius: '8px',
-            fontSize: '0.88rem',
-            fontWeight: '700',
-            backgroundColor: activeTab === 'batch' ? '#FFBC0D' : 'transparent',
-            color: activeTab === 'batch' ? '#121212' : '#A0A0A0',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            transition: 'all 0.2s ease',
-            cursor: 'pointer'
-          }}
-        >
-          <UploadCloud size={16} />
-          Carga Masiva
-        </button>
-
-        <button
-          onClick={() => setActiveTab('export')}
-          style={{
-            flex: 1,
-            padding: '10px 14px',
-            borderRadius: '8px',
-            fontSize: '0.88rem',
-            fontWeight: '700',
-            backgroundColor: activeTab === 'export' ? '#FFBC0D' : 'transparent',
-            color: activeTab === 'export' ? '#121212' : '#A0A0A0',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            transition: 'all 0.2s ease',
-            cursor: 'pointer'
-          }}
-        >
-          <FileSpreadsheet size={16} />
-          Exportar Excel
-        </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ActiveNavIcon size={18} color="#FFC72C" />
+            <span style={{ fontSize: '0.92rem', fontWeight: '800', color: '#FFFFFF' }}>
+              {currentNavFlat?.label}
+            </span>
+          </div>
+        </div>
 
         <button
           onClick={handleLockDashboard}
           style={{
             backgroundColor: 'transparent',
-            border: 'none',
-            color: '#888888',
-            padding: '10px 12px',
-            borderRadius: '8px',
+            border: '1px solid #3A3833',
+            color: '#A0A0A0',
+            borderRadius: '10px',
+            minHeight: '40px',
+            padding: '6px 10px',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            gap: '4px',
+            fontSize: '0.75rem'
           }}
-          title="Bloquear acceso"
+          title="Bloquear panel"
         >
-          <Unlock size={16} />
+          <Unlock size={14} color="#f87171" />
+          <span>Bloquear</span>
         </button>
       </div>
 
-      {/* VISTA 1: RED GLOBAL (DÍA) */}
-      {activeTab === 'network' && (
-        <div>
-          {/* Encabezado */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-            <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                <BarChart3 color="#FFBC0D" size={24} />
-                Consumo Diario de la Red
-              </h2>
-              <p style={{ fontSize: '0.8rem', color: '#A0A0A0', margin: '2px 0 0 0' }}>
-                Monitoreo consolidado de los 5 locales
-              </p>
+      {/* Drawer Lateral en Cascada (Móvil) */}
+      {isSidebarOpenMobile && (
+        <div
+          onClick={() => setIsSidebarOpenMobile(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 1000,
+            display: 'flex',
+            justifyContent: 'flex-start'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="animate-slide-up"
+            style={{
+              backgroundColor: '#1D1D1D',
+              width: '85%',
+              maxWidth: '320px',
+              height: '100%',
+              borderRight: '1px solid #3A3833',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '20px 16px',
+              boxShadow: '10px 0 30px rgba(0,0,0,0.8)'
+            }}
+          >
+            {/* Header del Drawer */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #3A3833', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  backgroundColor: '#DA291C',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#FFC72C',
+                  fontWeight: '900',
+                  fontSize: '18px'
+                }}>
+                  M
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#FFFFFF', margin: 0 }}>
+                    Panel de Control
+                  </h3>
+                  <p style={{ fontSize: '0.72rem', color: '#A0A0A0', margin: 0 }}>
+                    Navegación en Cascada
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsSidebarOpenMobile(false)}
+                style={{
+                  backgroundColor: '#27251F',
+                  color: '#A0A0A0',
+                  borderRadius: '50%',
+                  width: '36px',
+                  height: '36px',
+                  minHeight: '36px',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid #3A3833'
+                }}
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Calendar size={18} color="#FFBC0D" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                style={{ padding: '6px 10px', fontSize: '0.85rem', width: 'auto' }}
-              />
+            {/* Grupos de Navegación */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {NAV_SECTIONS.map((sec) => (
+                <div key={sec.group}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: '800', color: '#FFC72C', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '4px' }}>
+                    {sec.group}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {sec.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveTab(item.id);
+                            setIsSidebarOpenMobile(false);
+                          }}
+                          style={{
+                            minHeight: '50px',
+                            padding: '10px 12px',
+                            borderRadius: '12px',
+                            backgroundColor: isActive ? 'rgba(255, 199, 44, 0.15)' : '#27251F',
+                            border: isActive ? '1px solid #FFC72C' : '1px solid transparent',
+                            color: isActive ? '#FFC72C' : '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            textAlign: 'left',
+                            width: '100%',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Icon size={18} color={isActive ? '#FFC72C' : '#A0A0A0'} />
+                            <div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: isActive ? '800' : '700' }}>
+                                {item.label}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: '#888888' }}>
+                                {item.desc}
+                              </div>
+                            </div>
+                          </div>
+                          {isActive && <ChevronRight size={16} color="#FFC72C" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer del Drawer */}
+            <div style={{ paddingTop: '16px', borderTop: '1px solid #3A3833' }}>
               <button
-                onClick={loadDashboardData}
-                style={{ backgroundColor: '#262626', border: '1px solid #383838', color: '#FFBC0D', padding: '6px 10px', borderRadius: '8px' }}
-                title="Recargar"
+                onClick={handleLockDashboard}
+                style={{
+                  width: '100%',
+                  minHeight: '48px',
+                  backgroundColor: '#27251F',
+                  border: '1px solid #ef4444',
+                  color: '#f87171',
+                  borderRadius: '12px',
+                  padding: '10px',
+                  fontSize: '0.85rem',
+                  fontWeight: '700',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
               >
-                <RefreshCw size={15} />
+                <Lock size={16} />
+                Bloquear Acceso
               </button>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Métricas Resumen Red */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-            <div className="card">
-              <div style={{ fontSize: '0.78rem', color: '#888888' }}>Total Red ({selectedDate})</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#FFBC0D', marginTop: '4px' }}>
-                {totalCurrent.toLocaleString('es-AR', { maximumFractionDigits: 1 })} <span style={{ fontSize: '0.85rem' }}>kWh</span>
+      {/* Contenido Principal */}
+      <div style={{
+        flex: 1,
+        padding: '16px',
+        maxWidth: activeTab === 'comparison' ? '880px' : '820px',
+        width: '100%',
+        margin: '0 auto',
+        paddingBottom: '90px'
+      }}>
+        {/* VISTA 1: RED GLOBAL (DÍA) */}
+        {activeTab === 'network' && (
+          <div className="animate-fade-in">
+            {/* Encabezado */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                  <BarChart3 color="#FFC72C" size={24} />
+                  Consumo Diario de la Red
+                </h2>
+                <p style={{ fontSize: '0.8rem', color: '#A0A0A0', margin: '2px 0 0 0' }}>
+                  Monitoreo consolidado de los 5 locales
+                </p>
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '2px' }}>
-                {readings.length} de {allStores.length} locales cargados hoy
-              </div>
-            </div>
 
-            <div className="card">
-              <div style={{ fontSize: '0.78rem', color: '#888888' }}>Mismo Día Año Anterior ({prevYearDate})</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#38BDF8', marginTop: '4px' }}>
-                {totalPrev.toLocaleString('es-AR', { maximumFractionDigits: 1 })} <span style={{ fontSize: '0.85rem' }}>kWh</span>
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '2px' }}>
-                Promedio local: {averageConsumption} kWh
-              </div>
-            </div>
-
-            <div className="card" style={{
-              borderLeft: totalPrev > 0 ? (isSaving ? '4px solid #22c55e' : '4px solid #ef4444') : '4px solid #6b7280'
-            }}>
-              <div style={{ fontSize: '0.78rem', color: '#888888' }}>Variación Red Interanual</div>
-              <div style={{
-                fontSize: '1.5rem',
-                fontWeight: '800',
-                color: totalPrev > 0 ? (isSaving ? '#4ade80' : '#f87171') : '#A0A0A0',
-                marginTop: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                {totalPrev > 0 ? (
-                  <>
-                    {isSaving ? <ArrowDownRight size={22} /> : <ArrowUpRight size={22} />}
-                    {netDiff > 0 ? '+' : ''}{netDiff.toLocaleString('es-AR', { maximumFractionDigits: 1 })} kWh
-                  </>
-                ) : (
-                  'Sin histórico'
-                )}
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '2px' }}>
-                {totalPrev > 0 ? `${netDiff > 0 ? '+' : ''}${netDiffPct}% vs año anterior` : 'Requiere datos de ' + prevYearDate}
-              </div>
-            </div>
-          </div>
-
-          {/* Lista de Locales */}
-          <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '10px', color: '#FFFFFF' }}>
-            Estado por Local ({selectedDate})
-          </h3>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {allStores.map((store) => {
-              const currentReading = readings.find((r) => r.store_id === store.id);
-              const prevReading = prevYearReadings.find((r) => r.store_id === store.id);
-
-              const hasReported = Boolean(currentReading);
-              const consumption = currentReading ? parseFloat(currentReading.calculated_consumption) : null;
-              const prevConsumption = prevReading ? parseFloat(prevReading.calculated_consumption) : null;
-
-              let diff = null;
-              let diffPct = null;
-              if (consumption !== null && prevConsumption !== null) {
-                diff = consumption - prevConsumption;
-                diffPct = prevConsumption > 0 ? ((diff / prevConsumption) * 100).toFixed(1) : 0;
-              }
-
-              const isStoreSaving = diff !== null && diff <= 0;
-
-              return (
-                <div
-                  key={store.id}
-                  className="card"
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Calendar size={18} color="#FFC72C" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  style={{ padding: '8px 12px', fontSize: '0.85rem', width: 'auto', minHeight: '44px' }}
+                />
+                <button
+                  onClick={loadDashboardData}
                   style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 14px',
-                    borderLeft: hasReported ? '4px solid #22c55e' : '4px solid #4b5563'
+                    backgroundColor: '#27251F',
+                    border: '1px solid #3A3833',
+                    color: '#FFC72C',
+                    padding: '8px 12px',
+                    minHeight: '44px',
+                    borderRadius: '10px'
                   }}
+                  title="Actualizar datos"
                 >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <strong style={{ fontSize: '0.98rem', color: '#FFFFFF' }}>{store.name}</strong>
-                      <span style={{ fontSize: '0.7rem', color: '#A0A0A0', backgroundColor: '#262626', padding: '1px 6px', borderRadius: '4px' }}>
-                        {store.code}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#888888', marginTop: '3px' }}>
-                      {hasReported
-                        ? `Display: ${currentReading.display_value} • ${currentReading.technician_name ? `Técnico: ${currentReading.technician_name}` : 'Registrado'}`
-                        : 'Pendiente de carga'}
-                    </div>
-                  </div>
+                  <RefreshCw size={16} />
+                </button>
+              </div>
+            </div>
 
-                  <div style={{ textAlign: 'right' }}>
-                    {hasReported && consumption !== null ? (
-                      <>
-                        <div style={{ fontWeight: '800', fontSize: '1.15rem', color: '#FFBC0D' }}>
-                          {consumption.toLocaleString('es-AR')} kWh
+            {/* Métricas Principales (KPIs) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+              {/* Total Red Hoy */}
+              <div className="card">
+                <div style={{ fontSize: '0.8rem', color: '#888888' }}>Total Red {selectedDate}</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#FFC72C', marginTop: '4px' }}>
+                  {totalCurrent.toLocaleString('es-AR', { maximumFractionDigits: 1 })} <span style={{ fontSize: '0.9rem' }}>kWh</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '2px' }}>
+                  Promedio: {averageConsumption} kWh por local
+                </div>
+              </div>
+
+              {/* Mismo Día Año Anterior */}
+              <div className="card">
+                <div style={{ fontSize: '0.8rem', color: '#888888' }}>Mismo Día Año Anterior ({prevYearDate})</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#38BDF8', marginTop: '4px' }}>
+                  {totalPrev.toLocaleString('es-AR', { maximumFractionDigits: 1 })} <span style={{ fontSize: '0.9rem' }}>kWh</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '2px' }}>
+                  {prevYearReadings.length} de 5 locales medidos en 2025
+                </div>
+              </div>
+
+              {/* Variación Red */}
+              <div className="card" style={{
+                borderLeft: totalPrev > 0 ? (isSaving ? '4px solid #22c55e' : '4px solid #DA291C') : '4px solid #6b7280'
+              }}>
+                <div style={{ fontSize: '0.8rem', color: '#888888' }}>Variación Red Interanual</div>
+                <div style={{
+                  fontSize: '1.6rem',
+                  fontWeight: '800',
+                  color: totalPrev > 0 ? (isSaving ? '#4ade80' : '#f87171') : '#A0A0A0',
+                  marginTop: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  {totalPrev > 0 ? (
+                    <>
+                      {isSaving ? <ArrowDownRight size={24} /> : <ArrowUpRight size={24} />}
+                      {netDiff > 0 ? '+' : ''}{netDiff.toLocaleString('es-AR', { maximumFractionDigits: 1 })} kWh
+                    </>
+                  ) : (
+                    'Sin histórico'
+                  )}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '2px' }}>
+                  {totalPrev > 0 ? `${netDiff > 0 ? '+' : ''}${netDiffPct}% vs 2025` : 'Requiere datos del año pasado'}
+                </div>
+              </div>
+            </div>
+
+            {/* Tabla Detalle por Local */}
+            <div className="card" style={{ padding: '16px', overflowX: 'auto' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '12px', color: '#FFFFFF' }}>
+                Detalle por Local (5 Tiendas)
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {allStores.map((store) => {
+                  const currentReading = readings.find((r) => r.store_id === store.id);
+                  const prevReading = prevYearReadings.find((r) => r.store_id === store.id);
+
+                  const consumption = currentReading?.calculated_consumption;
+                  const prevConsumption = prevReading?.calculated_consumption;
+
+                  let diff = null;
+                  let diffPct = null;
+                  if (consumption !== null && consumption !== undefined && prevConsumption !== null && prevConsumption !== undefined) {
+                    diff = consumption - prevConsumption;
+                    diffPct = prevConsumption > 0 ? ((diff / prevConsumption) * 100).toFixed(1) : 0;
+                  }
+
+                  const isLocalSaving = diff !== null && diff <= 0;
+
+                  return (
+                    <div
+                      key={store.id}
+                      style={{
+                        backgroundColor: '#1D1D1D',
+                        border: '1px solid #3A3833',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{ minWidth: '140px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <strong style={{ fontSize: '0.98rem', color: '#FFFFFF' }}>{store.name}</strong>
+                          <span style={{ fontSize: '0.72rem', backgroundColor: '#27251F', color: '#FFC72C', padding: '2px 6px', borderRadius: '4px', fontWeight: '700' }}>
+                            {store.code}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#888888', marginTop: '2px' }}>
+                          Display: {currentReading ? currentReading.display_value : 'Pendiente'}
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '1.15rem', fontWeight: '800', color: currentReading ? '#FFC72C' : '#666666' }}>
+                          {consumption !== null && consumption !== undefined ? `${consumption.toFixed(1)} kWh` : (currentReading ? 'Base' : 'Sin Cargar')}
                         </div>
                         {diff !== null && (
-                          <span style={{
-                            fontSize: '0.72rem',
-                            color: isStoreSaving ? '#4ade80' : '#f87171',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'flex-end',
-                            gap: '2px',
-                            marginTop: '2px'
-                          }}>
-                            {isStoreSaving ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />}
+                          <div style={{ fontSize: '0.75rem', fontWeight: '700', color: isLocalSaving ? '#4ade80' : '#f87171' }}>
                             {diff > 0 ? '+' : ''}{diff.toFixed(1)} kWh ({diff > 0 ? '+' : ''}{diffPct}%)
-                          </span>
+                          </div>
                         )}
-                      </>
-                    ) : (
-                      <span style={{ fontSize: '0.8rem', color: '#6b7280', fontStyle: 'italic' }}>
-                        Sin datos
-                      </span>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VISTA 2: COMPARATIVA ANUAL (MES A MES) */}
+        {activeTab === 'comparison' && (
+          <div className="animate-fade-in">
+            <ConsumptionComparison isEmbedded={true} />
+          </div>
+        )}
+
+        {/* VISTA 3: CARGA MASIVA POR LOTE DE TEXTO */}
+        {activeTab === 'batch' && (
+          <div className="animate-fade-in">
+            <BatchImport onImportSuccess={loadDashboardData} />
+          </div>
+        )}
+
+        {/* VISTA 4: EXPORTACIÓN DE INFORMES EXCEL */}
+        {activeTab === 'export' && (
+          <div className="animate-fade-in">
+            <div style={{ marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <FileSpreadsheet color="#FFC72C" size={24} />
+                Exportación de Informes Eléctricos (Excel)
+              </h2>
+              <p style={{ fontSize: '0.82rem', color: '#A0A0A0', margin: '4px 0 0 0' }}>
+                Generación de planillas estructuradas con comparativa interanual y auditoría.
+              </p>
+            </div>
+
+            <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '18px' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#888888', display: 'block', marginBottom: '6px' }}>
+                    Mes del Período
+                  </label>
+                  <select
+                    value={exportMonth}
+                    onChange={(e) => setExportMonth(Number(e.target.value))}
+                    disabled={isExporting}
+                    style={{ minHeight: '48px' }}
+                  >
+                    {MONTH_NAMES.map((name, idx) => (
+                      <option key={idx} value={idx + 1}>{name}</option>
+                    ))}
+                  </select>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
-      {/* VISTA 2: COMPARATIVA ANUAL (MES A MES) */}
-      {activeTab === 'comparison' && (
-        <ConsumptionComparison isEmbedded={true} />
-      )}
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#888888', display: 'block', marginBottom: '6px' }}>
+                    Año del Período
+                  </label>
+                  <select
+                    value={exportYear}
+                    onChange={(e) => setExportYear(Number(e.target.value))}
+                    disabled={isExporting}
+                    style={{ minHeight: '48px' }}
+                  >
+                    {[2024, 2025, 2026, 2027].map((yr) => (
+                      <option key={yr} value={yr}>{yr}</option>
+                    ))}
+                  </select>
+                </div>
 
-      {/* VISTA 3: CARGA MASIVA POR LOTE DE TEXTO */}
-      {activeTab === 'batch' && (
-        <BatchImport onImportSuccess={loadDashboardData} />
-      )}
-
-      {/* VISTA 4: EXPORTACIÓN DE INFORMES EXCEL */}
-      {activeTab === 'export' && (
-        <div>
-          <div style={{ marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-              <FileSpreadsheet color="#FFBC0D" size={24} />
-              Exportación de Informes Eléctricos (Excel)
-            </h2>
-            <p style={{ fontSize: '0.82rem', color: '#A0A0A0', margin: '4px 0 0 0' }}>
-              Generación de planillas estructuradas con comparativa interanual, auditoría de carga y meta de ahorro.
-            </p>
-          </div>
-
-          {/* Formulario de Configuración del Reporte */}
-          <div className="card" style={{ padding: '20px', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#FFFFFF', marginBottom: '14px' }}>
-              Parámetros del Reporte
-            </h3>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '18px' }}>
-              <div>
-                <label style={{ fontSize: '0.8rem', color: '#888888', display: 'block', marginBottom: '6px' }}>
-                  Mes del Período
-                </label>
-                <select
-                  value={exportMonth}
-                  onChange={(e) => setExportMonth(Number(e.target.value))}
-                  disabled={isExporting}
-                  style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem' }}
-                >
-                  {MONTH_NAMES.map((name, idx) => (
-                    <option key={idx} value={idx + 1}>{name}</option>
-                  ))}
-                </select>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: '#888888', display: 'block', marginBottom: '6px' }}>
+                    Alcance del Reporte
+                  </label>
+                  <select
+                    value={exportStoreId}
+                    onChange={(e) => setExportStoreId(e.target.value)}
+                    disabled={isExporting}
+                    style={{ minHeight: '48px' }}
+                  >
+                    <option value="all">Toda la Red (Consolidado + 5 Locales)</option>
+                    {allStores.map((st) => (
+                      <option key={st.id} value={st.id}>Solo {st.name} ({st.code})</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.8rem', color: '#888888', display: 'block', marginBottom: '6px' }}>
-                  Año del Período
-                </label>
-                <select
-                  value={exportYear}
-                  onChange={(e) => setExportYear(Number(e.target.value))}
-                  disabled={isExporting}
-                  style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem' }}
-                >
-                  {[2024, 2025, 2026, 2027].map((yr) => (
-                    <option key={yr} value={yr}>{yr}</option>
-                  ))}
-                </select>
-              </div>
+              {exportSuccess && (
+                <div style={{
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                  color: '#86efac',
+                  border: '1px solid #22c55e',
+                  fontSize: '0.85rem'
+                }}>
+                  <CheckCircle2 size={18} />
+                  <span>{exportSuccess}</span>
+                </div>
+              )}
 
-              <div>
-                <label style={{ fontSize: '0.8rem', color: '#888888', display: 'block', marginBottom: '6px' }}>
-                  Alcance del Reporte
-                </label>
-                <select
-                  value={exportStoreId}
-                  onChange={(e) => setExportStoreId(e.target.value)}
-                  disabled={isExporting}
-                  style={{ width: '100%', padding: '10px 12px', fontSize: '0.9rem' }}
-                >
-                  <option value="all">Toda la Red (Consolidado + 5 Locales)</option>
-                  {allStores.map((st) => (
-                    <option key={st.id} value={st.id}>Solo {st.name} ({st.code})</option>
-                  ))}
-                </select>
-              </div>
+              <button
+                onClick={async () => {
+                  setIsExporting(true);
+                  setExportSuccess(null);
+                  try {
+                    await downloadReportFile({
+                      year: exportYear,
+                      month: exportMonth,
+                      selectedStoreId: exportStoreId
+                    });
+                    setExportSuccess(`Planilla descargada con éxito para ${MONTH_NAMES[exportMonth - 1]} ${exportYear}.`);
+                  } catch (err) {
+                    console.error('Error al descargar reporte:', err);
+                    alert('Error al generar el archivo Excel: ' + err.message);
+                  } finally {
+                    setIsExporting(false);
+                  }
+                }}
+                disabled={isExporting}
+                className="btn-mcd-yellow"
+                style={{
+                  width: '100%',
+                  minHeight: '48px',
+                  padding: '14px',
+                  borderRadius: '12px',
+                  fontSize: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  boxShadow: '0 4px 14px rgba(255, 199, 44, 0.3)'
+                }}
+              >
+                <Download size={20} />
+                {isExporting ? 'Procesando mediciones y generando Excel...' : 'Descargar Informe en Excel (.xlsx)'}
+              </button>
             </div>
-
-            {/* Reglas aplicadas en la exportación */}
-            <div style={{
-              backgroundColor: '#121212',
-              borderRadius: '10px',
-              padding: '14px',
-              marginBottom: '20px',
-              border: '1px solid #262626'
-            }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: '800', color: '#FFBC0D', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
-                Reglas de Negocio en la Planilla
-              </span>
-              <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.82rem', color: '#CCCCCC', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <li>
-                  <strong style={{ color: '#ef4444' }}>Días sin carga en rojo:</strong> Se identifican automáticamente las fechas omitidas y se calcula el consumo aproximado dividiendo el salto por los días transcurridos.
-                </li>
-                <li>
-                  <strong style={{ color: '#22c55e' }}>Meta de Ahorro del 3%:</strong> Se evalúa si el consumo diario y mensual cumplió el objetivo de ahorro corporativo (Consumo 2025 × 0.97).
-                </li>
-                <li>
-                  <strong style={{ color: '#38bdf8' }}>Estructura Multi-hoja:</strong> Hoja de resumen ejecutivo gerencial y pestañas detalladas por local con formato tabular para impresión o envío.
-                </li>
-              </ul>
-            </div>
-
-            {exportSuccess && (
-              <div style={{
-                padding: '12px 14px',
-                borderRadius: '8px',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: '#143823',
-                color: '#86efac',
-                border: '1px solid #22c55e',
-                fontSize: '0.88rem'
-              }}>
-                <CheckCircle2 size={18} />
-                <span>{exportSuccess}</span>
-              </div>
-            )}
-
-            <button
-              onClick={async () => {
-                setIsExporting(true);
-                setExportSuccess(null);
-                try {
-                  await downloadReportFile({
-                    year: exportYear,
-                    month: exportMonth,
-                    selectedStoreId: exportStoreId
-                  });
-                  setExportSuccess(`Planilla descargada con éxito para ${MONTH_NAMES[exportMonth - 1]} ${exportYear}.`);
-                } catch (err) {
-                  console.error('Error al descargar reporte:', err);
-                  alert('Error al generar el archivo Excel: ' + err.message);
-                } finally {
-                  setIsExporting(false);
-                }
-              }}
-              disabled={isExporting}
-              style={{
-                width: '100%',
-                backgroundColor: '#FFBC0D',
-                color: '#121212',
-                padding: '16px',
-                borderRadius: '10px',
-                fontSize: '1.05rem',
-                fontWeight: '800',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px',
-                boxShadow: '0 4px 14px rgba(255, 188, 13, 0.3)',
-                cursor: isExporting ? 'wait' : 'pointer'
-              }}
-            >
-              <Download size={20} />
-              {isExporting ? 'Procesando mediciones y generando Excel...' : 'Descargar Informe en Excel (.xlsx)'}
-            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

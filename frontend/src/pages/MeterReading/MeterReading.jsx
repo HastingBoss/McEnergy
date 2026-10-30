@@ -6,7 +6,9 @@ import {
   Edit3,
   UploadCloud,
   Send,
-  HelpCircle
+  HelpCircle,
+  Zap,
+  ArrowRight
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import {
@@ -27,6 +29,8 @@ export default function MeterReading() {
   const [isEditing, setIsEditing] = useState(false);
   const [showConfirmUpload, setShowConfirmUpload] = useState(false);
   const [showConfirmEdit, setShowConfirmEdit] = useState(false);
+  const [showAnomalyWarning, setShowAnomalyWarning] = useState(null);
+  const [adminNotified, setAdminNotified] = useState(false);
 
   const [todayReading, setTodayReading] = useState(null);
   const [previousReading, setPreviousReading] = useState(null);
@@ -49,6 +53,8 @@ export default function MeterReading() {
     setIsEditing(false);
     setShowConfirmUpload(false);
     setShowConfirmEdit(false);
+    setShowAnomalyWarning(null);
+    setAdminNotified(false);
 
     try {
       const [readingsList, currentEntry, lastYearEntry] = await Promise.all([
@@ -93,60 +99,107 @@ export default function MeterReading() {
 
   const numericVal = parseFloat(displayValue) || 0;
 
-  // Acción Cargar -> abre confirmación
+  // Acción Cargar -> valida y detecta anomalías / picos elevados (> 2x día anterior)
   const handleOpenUploadConfirm = (e) => {
     e.preventDefault();
     if (!displayValue || isNaN(numericVal) || numericVal <= 0) {
       setStatusMessage({ type: 'error', text: 'Ingresa un valor numérico válido mayor a 0.' });
       return;
     }
+
+    if (todayReading && !isEditing) {
+      setShowConfirmEdit(true);
+      return;
+    }
+
+    // Análisis de variación y detección de anomalía (más del doble del día anterior o consumo negativo)
+    const prevKwh = previousReading ? (previousReading.kwh_reading || previousReading.display_value * multiplier) : null;
+    const estKwh = numericVal * multiplier;
+    const estCons = prevKwh !== null ? (estKwh - prevKwh) : null;
+    const prevCons = previousReading?.calculated_consumption || 0;
+
+    const isHighSpike = estCons !== null && prevCons > 0 && estCons >= (prevCons * 2);
+    const isNegative = estCons !== null && estCons < 0;
+
+    if ((isHighSpike || isNegative) && !adminNotified) {
+      setShowAnomalyWarning({
+        isHighSpike,
+        isNegative,
+        estCons,
+        prevCons,
+        numericVal
+      });
+      return;
+    }
+
     setShowConfirmUpload(true);
   };
 
-  // Ejecutar Guardar
+  // El técnico elige cargar igual pese a la anomalía
+  const handleProceedWithAnomaly = () => {
+    setAdminNotified(true);
+    setShowAnomalyWarning(null);
+    setShowConfirmUpload(true);
+  };
+
+  // Confirmar y guardar la carga en Supabase
   const handleExecuteSave = async () => {
     setLoading(true);
-    setStatusMessage(null);
     setShowConfirmUpload(false);
+    setShowAnomalyWarning(null);
+    setStatusMessage(null);
+
+    const wasAdminNotified = adminNotified;
 
     try {
-      const saved = await saveMeterReading({
+      await saveMeterReading({
         storeId: currentStore.id,
         readingDate: todayStr,
         displayValue: numericVal,
         multiplier,
         isReset: false,
-        technicianName: 'Técnico de Guardia'
+        isEstimated: false,
+        technicianName: wasAdminNotified ? 'Técnico de Guardia (Auditado)' : 'Técnico de Guardia',
+        notes: wasAdminNotified ? 'Variación inusual confirmada por técnico en campo. Notificado al administrador.' : null
       });
 
-      setTodayReading(saved);
-      setIsEditing(false);
-      setStatusMessage({ type: 'success', text: `Lectura registrada: ${numericVal} en ${currentStore.name}.` });
+      setStatusMessage({
+        type: 'success',
+        text: `✓ Lectura de ${currentStore.name} registrada exitosamente.`,
+        adminNotice: wasAdminNotified ? 'Se le notificará al administrador para que lo revise.' : null
+      });
+
+      setAdminNotified(false);
       await loadDataForCurrentStore();
     } catch (err) {
-      setStatusMessage({ type: 'error', text: err.message || 'Error al guardar la lectura.' });
+      console.error('Error al guardar lectura:', err);
+      setStatusMessage({
+        type: 'error',
+        text: 'Error de conexión: ' + (err.message || 'No se pudo guardar la lectura.')
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  // Acción Modificar -> abre confirmación de modificación
   const handleOpenEditConfirm = () => {
     setShowConfirmEdit(true);
   };
 
+  // Habilitar modo edición tras confirmar
   const handleExecuteEdit = () => {
     setShowConfirmEdit(false);
     setIsEditing(true);
-    if (todayReading) {
-      setDisplayValue(String(todayReading.display_value));
-    }
   };
 
+  // Envío por WhatsApp formateado oficialmente
   const handleShareWhatsApp = () => {
-    if (!currentStore || !todayReading) return;
+    if (!todayReading) return;
+
     const text = formatWhatsAppReport({
       store: currentStore,
-      readingDate: todayStr,
+      readingDate: todayReading.reading_date,
       displayValue: todayReading.display_value
     });
 
@@ -154,14 +207,13 @@ export default function MeterReading() {
   };
 
   const isRegisteredState = Boolean(todayReading) && !isEditing;
-  const lastReading = previousReading || todayReading;
 
   return (
-    <div style={{ padding: '16px', maxWidth: '580px', margin: '0 auto', paddingBottom: '90px' }}>
+    <div className="animate-fade-in" style={{ padding: '16px', maxWidth: '580px', margin: '0 auto', paddingBottom: '90px' }}>
       {/* Selector de Local */}
-      <div style={{ marginBottom: '14px' }}>
-        <label style={{ fontSize: '0.8rem', color: '#A0A0A0', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-          <Building2 size={15} color="#FFBC0D" /> Local Seleccionado
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ fontSize: '0.8rem', color: '#A0A0A0', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontWeight: '700' }}>
+          <Building2 size={15} color="#FFC72C" /> Local Seleccionado
         </label>
         <select
           value={currentStore?.id || ''}
@@ -169,12 +221,13 @@ export default function MeterReading() {
           disabled={loading}
           style={{
             fontSize: '1rem',
-            fontWeight: '700',
-            backgroundColor: '#1E1E1E',
-            border: '2px solid #FFBC0D',
+            fontWeight: '800',
+            backgroundColor: '#27251F',
+            border: '2px solid #FFC72C',
             color: '#FFFFFF',
-            borderRadius: '10px',
+            borderRadius: '12px',
             padding: '12px 14px',
+            minHeight: '48px',
             width: '100%',
             outline: 'none'
           }}
@@ -189,48 +242,66 @@ export default function MeterReading() {
 
       {statusMessage && (
         <div style={{
-          padding: '12px 14px',
-          borderRadius: '8px',
+          padding: '14px 16px',
+          borderRadius: '12px',
           marginBottom: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          backgroundColor: statusMessage.type === 'success' ? '#143823' : '#3b1212',
+          backgroundColor: statusMessage.type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(218, 41, 28, 0.15)',
           color: statusMessage.type === 'success' ? '#86efac' : '#fca5a5',
-          border: `1px solid ${statusMessage.type === 'success' ? '#22c55e' : '#ef4444'}`,
-          fontSize: '0.88rem'
+          border: `1px solid ${statusMessage.type === 'success' ? '#22c55e' : '#DA291C'}`,
+          fontSize: '0.88rem',
+          fontWeight: '700'
         }}>
-          {statusMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
-          <span>{statusMessage.text}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {statusMessage.type === 'success' ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+            <span>{statusMessage.text}</span>
+          </div>
+          {statusMessage.adminNotice && (
+            <div style={{
+              marginTop: '10px',
+              padding: '8px 12px',
+              backgroundColor: '#1D1D1D',
+              border: '1px solid #FFC72C',
+              borderRadius: '8px',
+              fontSize: '0.8rem',
+              color: '#FFC72C',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span>⚡</span>
+              <span>{statusMessage.adminNotice}</span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* HUD PRINCIPAL */}
-      <div style={{
-        backgroundColor: '#151515',
-        border: '2px solid #2D2D2D',
-        borderRadius: '16px',
-        padding: '20px 18px',
+      {/* HUD PRINCIPAL - Tarjeta de Alto Contraste para Luz Solar */}
+      <div className="card" style={{
+        backgroundColor: '#27251F',
+        border: '1px solid #3A3833',
+        borderRadius: '18px',
+        padding: '22px 18px',
         boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
         marginBottom: '16px'
       }}>
         {/* Cabecera del HUD */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #262626', paddingBottom: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #3A3833', paddingBottom: '12px' }}>
           <div>
-            <span style={{ fontSize: '0.72rem', color: '#888888', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              REGISTRO DIARIO
+            <span style={{ fontSize: '0.72rem', color: '#FFC72C', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>
+              REGISTRO DIARIO (12:00 PM)
             </span>
-            <div style={{ fontSize: '1rem', fontWeight: '800', color: '#FFFFFF' }}>
+            <div style={{ fontSize: '1.05rem', fontWeight: '900', color: '#FFFFFF', marginTop: '2px' }}>
               {currentStore?.name}
             </div>
           </div>
           <span style={{
-            backgroundColor: '#262626',
-            color: '#FFBC0D',
-            padding: '4px 10px',
-            borderRadius: '6px',
-            fontSize: '0.85rem',
-            fontWeight: '800'
+            backgroundColor: '#1D1D1D',
+            color: '#FFC72C',
+            border: '1px solid #FFC72C',
+            padding: '4px 12px',
+            borderRadius: '8px',
+            fontSize: '0.88rem',
+            fontWeight: '900'
           }}>
             {currentStore?.code}
           </span>
@@ -243,32 +314,32 @@ export default function MeterReading() {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              color: '#22c55e',
-              fontSize: '0.85rem',
-              fontWeight: '700',
-              marginBottom: '10px'
+              color: '#4ade80',
+              fontSize: '0.88rem',
+              fontWeight: '800',
+              marginBottom: '12px'
             }}>
-              <CheckCircle2 size={16} /> Lectura de hoy registrada
+              <CheckCircle2 size={18} /> Lectura de hoy registrada
             </div>
 
             <div style={{
-              backgroundColor: '#0A0A0A',
-              border: '1px solid #333333',
-              borderRadius: '12px',
-              padding: '18px',
+              backgroundColor: '#1D1D1D',
+              border: '2px solid #3A3833',
+              borderRadius: '14px',
+              padding: '20px',
               textAlign: 'center',
-              marginBottom: '16px'
+              marginBottom: '18px'
             }}>
               <div style={{
                 fontSize: '2.8rem',
                 fontWeight: '900',
-                color: '#FFBC0D',
+                color: '#FFC72C',
                 fontFamily: 'monospace',
                 letterSpacing: '1px'
               }}>
                 {todayReading.display_value}
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#888888' }}>
+              <span style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '4px', display: 'block' }}>
                 Registrado para hoy ({todayReading.reading_date})
               </span>
             </div>
@@ -277,15 +348,16 @@ export default function MeterReading() {
               <button
                 type="button"
                 onClick={handleOpenEditConfirm}
+                className="btn-secondary"
                 style={{
                   flex: 1,
-                  backgroundColor: '#2A2A2A',
-                  color: '#FFFFFF',
-                  border: '1px solid #444444',
-                  padding: '14px',
-                  borderRadius: '10px',
-                  fontSize: '1rem',
-                  fontWeight: '700'
+                  minHeight: '48px',
+                  borderRadius: '12px',
+                  fontSize: '0.95rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
                 }}
               >
                 <Edit3 size={18} />
@@ -295,12 +367,16 @@ export default function MeterReading() {
               <button
                 type="button"
                 onClick={handleShareWhatsApp}
-                className="btn-primary"
+                className="btn-mcd-yellow"
                 style={{
-                  padding: '14px 18px',
-                  borderRadius: '10px',
-                  fontSize: '1rem',
-                  fontWeight: '700'
+                  flex: 1,
+                  minHeight: '48px',
+                  borderRadius: '12px',
+                  fontSize: '0.95rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
                 }}
                 title="Compartir por WhatsApp"
               >
@@ -312,15 +388,15 @@ export default function MeterReading() {
         ) : (
           /* ESTADO 2: CAMPO ÚNICO PARA CARGAR (SOLO NÚMEROS) */
           <form onSubmit={handleOpenUploadConfirm}>
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '18px' }}>
               <label style={{
-                fontSize: '0.85rem',
-                color: '#FFBC0D',
-                fontWeight: '700',
+                fontSize: '0.88rem',
+                color: '#FFC72C',
+                fontWeight: '800',
                 display: 'block',
-                marginBottom: '8px'
+                marginBottom: '10px'
               }}>
-                {isEditing ? 'Modificar lectura del medidor (Solo números)' : 'Cargar lectura del medidor (Solo números)'}
+                {isEditing ? 'Modificar lectura del medidor (Solo números):' : 'Cargar lectura del medidor (Solo números):'}
               </label>
 
               <div style={{ position: 'relative' }}>
@@ -335,23 +411,24 @@ export default function MeterReading() {
                   onChange={handleNumericChange}
                   disabled={loading}
                   style={{
-                    fontSize: '2.4rem',
+                    fontSize: '2.5rem',
                     fontWeight: '900',
                     fontFamily: 'monospace',
                     letterSpacing: '1px',
                     textAlign: 'center',
                     padding: '16px 12px',
-                    backgroundColor: '#0A0A0A',
-                    border: '2px solid #FFBC0D',
-                    borderRadius: '12px',
-                    color: '#FFBC0D',
+                    minHeight: '72px',
+                    backgroundColor: '#1D1D1D',
+                    border: '2px solid #FFC72C',
+                    borderRadius: '14px',
+                    color: '#FFC72C',
                     width: '100%',
                     outline: 'none'
                   }}
                 />
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#888888', display: 'block', marginTop: '6px', textAlign: 'center' }}>
-                Ingresa el valor numérico visible en el display
+              <span style={{ fontSize: '0.78rem', color: '#A0A0A0', display: 'block', marginTop: '8px', textAlign: 'center' }}>
+                Ingresa únicamente los números visibles en la pantalla física
               </span>
             </div>
 
@@ -359,15 +436,13 @@ export default function MeterReading() {
               <button
                 type="submit"
                 disabled={loading || numericVal <= 0}
+                className="btn-mcd-yellow"
                 style={{
                   flex: 1,
-                  backgroundColor: '#FFBC0D',
-                  color: '#121212',
-                  padding: '15px',
-                  borderRadius: '10px',
+                  minHeight: '48px',
+                  borderRadius: '12px',
                   fontSize: '1.05rem',
-                  fontWeight: '800',
-                  boxShadow: '0 4px 12px rgba(255, 188, 13, 0.3)'
+                  boxShadow: '0 4px 14px rgba(255, 199, 44, 0.3)'
                 }}
               >
                 <UploadCloud size={20} />
@@ -378,12 +453,11 @@ export default function MeterReading() {
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
+                  className="btn-secondary"
                   style={{
-                    backgroundColor: '#2A2A2A',
-                    color: '#A0A0A0',
-                    padding: '15px 18px',
-                    borderRadius: '10px',
-                    fontWeight: '700'
+                    minHeight: '48px',
+                    padding: '0 20px',
+                    borderRadius: '12px'
                   }}
                 >
                   Cancelar
@@ -395,27 +469,27 @@ export default function MeterReading() {
       </div>
 
       {/* PARTE INFERIOR: REFERENCIA DEL DÍA ANTERIOR */}
-      <div style={{
-        backgroundColor: '#1A1A1A',
-        border: '1px solid #282828',
-        borderRadius: '12px',
+      <div className="card" style={{
+        backgroundColor: '#27251F',
+        border: '1px solid #3A3833',
+        borderRadius: '14px',
         padding: '16px 18px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
         <div>
-          <span style={{ fontSize: '0.88rem', color: '#A0A0A0', fontWeight: '600', display: 'block' }}>
+          <span style={{ fontSize: '0.88rem', color: '#A0A0A0', fontWeight: '700', display: 'block' }}>
             Lectura día anterior:
           </span>
           {previousReading?.reading_date && (
-            <span style={{ fontSize: '0.72rem', color: '#666666', marginTop: '2px', display: 'block' }}>
+            <span style={{ fontSize: '0.74rem', color: '#888888', marginTop: '2px', display: 'block' }}>
               Fecha: {previousReading.reading_date}
             </span>
           )}
         </div>
         <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '1.4rem', fontWeight: '900', color: '#FFBC0D', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#FFC72C', fontFamily: 'monospace' }}>
             {previousReading ? previousReading.display_value : 'Sin registro previo'}
           </span>
         </div>
@@ -426,26 +500,26 @@ export default function MeterReading() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(3px)',
+          backgroundColor: 'rgba(0,0,0,0.78)',
+          backdropFilter: 'blur(4px)',
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '16px'
         }}>
-          <div style={{
-            backgroundColor: '#1E1E1E',
-            border: '2px solid #FFBC0D',
-            borderRadius: '14px',
-            padding: '22px',
+          <div className="card animate-slide-up" style={{
+            backgroundColor: '#27251F',
+            border: '2px solid #FFC72C',
+            borderRadius: '18px',
+            padding: '24px',
             width: '100%',
             maxWidth: '380px',
-            boxShadow: '0 12px 30px rgba(0,0,0,0.8)'
+            boxShadow: '0 16px 36px rgba(0,0,0,0.85)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFBC0D', marginBottom: '12px' }}>
-              <HelpCircle size={22} />
-              <h3 style={{ fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#FFFFFF' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFC72C', marginBottom: '12px' }}>
+              <HelpCircle size={24} />
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '900', margin: 0, color: '#FFFFFF' }}>
                 Confirmar Carga
               </h3>
             </div>
@@ -454,45 +528,160 @@ export default function MeterReading() {
               ¿Confirmas registrar el siguiente valor para <strong>{currentStore?.name}</strong>?
             </p>
 
+            {adminNotified && (
+              <div style={{
+                backgroundColor: 'rgba(218, 41, 28, 0.15)',
+                border: '1px solid #DA291C',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '0.78rem',
+                color: '#FCA5A5',
+                marginBottom: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <AlertTriangle size={15} color="#DA291C" />
+                <span>Variación atípica aprobada: se notificará al administrador.</span>
+              </div>
+            )}
+
             <div style={{
-              backgroundColor: '#121212',
-              borderRadius: '10px',
-              padding: '14px',
+              backgroundColor: '#1D1D1D',
+              borderRadius: '12px',
+              padding: '16px',
               textAlign: 'center',
-              marginBottom: '18px'
+              marginBottom: '18px',
+              border: '1px solid #3A3833'
             }}>
-              <span style={{ fontSize: '0.75rem', color: '#888888' }}>VALOR INGRESADO</span>
-              <div style={{ fontSize: '2.2rem', fontWeight: '900', color: '#FFBC0D', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: '0.72rem', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>VALOR INGRESADO</span>
+              <div style={{ fontSize: '2.4rem', fontWeight: '900', color: '#FFC72C', fontFamily: 'monospace' }}>
                 {displayValue}
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
+                type="button"
                 onClick={() => setShowConfirmUpload(false)}
+                className="btn-secondary"
                 style={{
                   flex: 1,
-                  backgroundColor: '#2A2A2A',
-                  color: '#C0C0C0',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  fontWeight: '700'
+                  minHeight: '48px',
+                  borderRadius: '10px'
                 }}
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleExecuteSave}
+                className="btn-mcd-yellow"
                 style={{
                   flex: 1,
-                  backgroundColor: '#FFBC0D',
-                  color: '#121212',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  fontWeight: '800'
+                  minHeight: '48px',
+                  borderRadius: '10px'
                 }}
               >
                 Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ALERTA DE VARIACIÓN INUSUAL (PICO ELEVADO O CONSUMO ANÓMALO) */}
+      {showAnomalyWarning && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.82)',
+          backdropFilter: 'blur(5px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px'
+        }}>
+          <div className="card animate-slide-up" style={{
+            backgroundColor: '#27251F',
+            border: '2px solid #DA291C',
+            borderRadius: '18px',
+            padding: '24px',
+            width: '100%',
+            maxWidth: '400px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.9)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#DA291C', marginBottom: '14px' }}>
+              <div style={{
+                backgroundColor: 'rgba(218, 41, 28, 0.15)',
+                padding: '8px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <AlertTriangle size={24} color="#DA291C" />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '900', margin: 0, color: '#FFFFFF' }}>
+                Variación Inusual
+              </h3>
+            </div>
+
+            <p style={{ fontSize: '0.88rem', color: '#DDDDDD', marginBottom: '14px', lineHeight: 1.4 }}>
+              {showAnomalyWarning.isHighSpike ? (
+                <>
+                  El valor ingresado arroja un consumo estimado de{' '}
+                  <strong style={{ color: '#FFC72C' }}>{showAnomalyWarning.estCons.toFixed(1)} kWh</strong>,
+                  lo que supera el doble del consumo del día anterior ({showAnomalyWarning.prevCons.toFixed(1)} kWh).
+                </>
+              ) : (
+                <>
+                  La lectura ingresada es menor a la del día anterior ({previousReading?.display_value}),
+                  lo cual generaría un consumo negativo. Si hubo reinicio o reemplazo de medidor, debes marcarlo como lectura base.
+                </>
+              )}
+            </p>
+
+            <div style={{
+              backgroundColor: '#1D1D1D',
+              border: '1px solid #3A3833',
+              borderRadius: '12px',
+              padding: '12px 14px',
+              marginBottom: '18px',
+              fontSize: '0.78rem',
+              color: '#A0A0A0'
+            }}>
+              <span style={{ color: '#FFC72C', fontWeight: '700', display: 'block', marginBottom: '3px' }}>
+                ℹ️ Protocolo Operativo:
+              </span>
+              Si decides cargarlo de todas formas, se le notificará al administrador para que lo revise y audite técnicamente.
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowAnomalyWarning(null)}
+                className="btn-secondary"
+                style={{
+                  flex: 1,
+                  minHeight: '48px',
+                  borderRadius: '10px'
+                }}
+              >
+                Revisar Lectura
+              </button>
+              <button
+                type="button"
+                onClick={handleProceedWithAnomaly}
+                className="btn-mcd-red"
+                style={{
+                  flex: 1,
+                  minHeight: '48px',
+                  borderRadius: '10px'
+                }}
+              >
+                Cargar Igual
               </button>
             </div>
           </div>
@@ -504,26 +693,26 @@ export default function MeterReading() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(3px)',
+          backgroundColor: 'rgba(0,0,0,0.78)',
+          backdropFilter: 'blur(4px)',
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '16px'
         }}>
-          <div style={{
-            backgroundColor: '#1E1E1E',
+          <div className="card animate-slide-up" style={{
+            backgroundColor: '#27251F',
             border: '2px solid #38BDF8',
-            borderRadius: '14px',
-            padding: '22px',
+            borderRadius: '18px',
+            padding: '24px',
             width: '100%',
             maxWidth: '380px',
-            boxShadow: '0 12px 30px rgba(0,0,0,0.8)'
+            boxShadow: '0 16px 36px rgba(0,0,0,0.85)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38BDF8', marginBottom: '12px' }}>
-              <Edit3 size={22} />
-              <h3 style={{ fontSize: '1.15rem', fontWeight: '800', margin: 0, color: '#FFFFFF' }}>
+              <Edit3 size={24} />
+              <h3 style={{ fontSize: '1.2rem', fontWeight: '900', margin: 0, color: '#FFFFFF' }}>
                 Modificar Lectura
               </h3>
             </div>
@@ -536,26 +725,26 @@ export default function MeterReading() {
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
+                type="button"
                 onClick={() => setShowConfirmEdit(false)}
+                className="btn-secondary"
                 style={{
                   flex: 1,
-                  backgroundColor: '#2A2A2A',
-                  color: '#C0C0C0',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  fontWeight: '700'
+                  minHeight: '48px',
+                  borderRadius: '10px'
                 }}
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleExecuteEdit}
                 style={{
                   flex: 1,
+                  minHeight: '48px',
                   backgroundColor: '#38BDF8',
                   color: '#0F172A',
-                  padding: '12px',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   fontWeight: '800'
                 }}
               >

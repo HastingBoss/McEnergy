@@ -178,7 +178,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-            <TrendingUp color="#FFBC0D" size={24} />
+            <TrendingUp color="#FFC72C" size={24} />
             Comparativa Anual ({currentStore?.code})
           </h2>
           <p style={{ fontSize: '0.8rem', color: '#A0A0A0', margin: '2px 0 0 0' }}>
@@ -225,7 +225,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
             style={{
               backgroundColor: '#262626',
               border: '1px solid #383838',
-              color: '#FFBC0D',
+              color: '#FFC72C',
               padding: '6px 10px',
               borderRadius: '8px'
             }}
@@ -285,10 +285,10 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
         gap: '10px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#CCCCCC' }}>
-          <Clock size={16} color={missingPastDaysCount > 0 ? '#FFBC0D' : '#4ade80'} />
+          <Clock size={16} color={missingPastDaysCount > 0 ? '#FFC72C' : '#4ade80'} />
           <span>
             {missingPastDaysCount > 0 ? (
-              <>Hay <strong style={{ color: '#FFBC0D' }}>{missingPastDaysCount} {missingPastDaysCount === 1 ? 'día sin lectura pendiente' : 'días sin lectura pendientes'}</strong> en {MONTH_NAMES[selectedMonth - 1]} (hasta ayer)</>
+              <>Hay <strong style={{ color: '#FFC72C' }}>{missingPastDaysCount} {missingPastDaysCount === 1 ? 'día sin lectura pendiente' : 'días sin lectura pendientes'}</strong> en {MONTH_NAMES[selectedMonth - 1]} (hasta ayer)</>
             ) : (
               <span style={{ color: '#4ade80' }}>
                 {isPastMonth
@@ -317,7 +317,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
             }}
             title="Cargar o corregir una fecha puntual"
           >
-            <Plus size={15} color="#FFBC0D" />
+            <Plus size={15} color="#FFC72C" />
             Cargar / Estimar Día
           </button>
 
@@ -327,8 +327,8 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
               onClick={() => setIsBatchModalOpen(true)}
               style={{
                 backgroundColor: 'rgba(255, 188, 13, 0.15)',
-                color: '#FFBC0D',
-                border: '1px solid #FFBC0D',
+                color: '#FFC72C',
+                border: '1px solid #FFC72C',
                 borderRadius: '8px',
                 padding: '6px 12px',
                 fontSize: '0.8rem',
@@ -353,7 +353,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
           <div style={{ fontSize: '0.78rem', color: '#888888' }}>
             Acumulado {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
           </div>
-          <div style={{ fontSize: '1.45rem', fontWeight: '800', color: '#FFBC0D', marginTop: '4px' }}>
+          <div style={{ fontSize: '1.45rem', fontWeight: '800', color: '#FFC72C', marginTop: '4px' }}>
             {totalCurrentMonth.toLocaleString('es-AR', { maximumFractionDigits: 1 })} <span style={{ fontSize: '0.85rem' }}>kWh</span>
           </div>
           <div style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '2px' }}>
@@ -465,7 +465,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                   <td style={{ padding: '8px 6px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       {row.currentCons !== null ? (
-                        <span style={{ color: '#FFBC0D', fontWeight: '600' }}>
+                        <span style={{ color: '#FFC72C', fontWeight: '600' }}>
                           {row.currentCons.toFixed(1)} kWh
                         </span>
                       ) : (
@@ -477,7 +477,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                         <span style={{
                           fontSize: '0.66rem',
                           backgroundColor: '#3b2f05',
-                          color: '#FFBC0D',
+                          color: '#FFC72C',
                           border: '1px solid #b48509',
                           padding: '1px 5px',
                           borderRadius: '4px',
@@ -554,7 +554,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                         }}
                         title="Editar lectura de este día"
                       >
-                        <Edit3 size={12} color="#FFBC0D" />
+                        <Edit3 size={12} color="#FFC72C" />
                         Editar
                       </button>
                     ) : row.currentDateStr <= yesterdayStr ? (
@@ -567,7 +567,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                         style={{
                           backgroundColor: 'rgba(255, 188, 13, 0.12)',
                           border: '1px solid #b48509',
-                          color: '#FFBC0D',
+                          color: '#FFC72C',
                           borderRadius: '6px',
                           padding: '4px 8px',
                           fontSize: '0.72rem',
@@ -594,7 +594,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                         style={{
                           backgroundColor: '#222222',
                           border: '1px solid #333333',
-                          color: '#FFBC0D',
+                          color: '#FFC72C',
                           borderRadius: '6px',
                           padding: '4px 8px',
                           fontSize: '0.72rem',

@@ -195,7 +195,7 @@ export default function BatchEstimateModal({
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles color="#FFBC0D" size={20} />
+              <Sparkles color="#FFC72C" size={20} />
               <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#FFFFFF', margin: 0 }}>
                 Autocompletar Días Faltantes
               </h3>
@@ -276,7 +276,7 @@ export default function BatchEstimateModal({
                         <td style={{ padding: '6px 10px', fontWeight: '700', color: '#FFFFFF' }}>
                           Día {item.day}
                         </td>
-                        <td style={{ padding: '6px 10px', color: '#FFBC0D' }}>
+                        <td style={{ padding: '6px 10px', color: '#FFC72C' }}>
                           {item.estimatedDisplay}
                         </td>
                         <td style={{ padding: '6px 10px', color: '#4ade80', fontWeight: '700' }}>
@@ -292,7 +292,7 @@ export default function BatchEstimateModal({
               </div>
 
               <p style={{ fontSize: '0.74rem', color: '#888', margin: 0 }}>
-                💡 Cada día será guardado con la etiqueta <span style={{ color: '#FFBC0D' }}>[Estimado]</span> para total transparencia contable.
+                💡 Cada día será guardado con la etiqueta <span style={{ color: '#FFC72C' }}>[Estimado]</span> para total transparencia contable.
               </p>
             </>
           )}
@@ -326,7 +326,7 @@ export default function BatchEstimateModal({
                 onClick={handleApplyEstimates}
                 disabled={saving}
                 style={{
-                  backgroundColor: '#FFBC0D',
+                  backgroundColor: '#FFC72C',
                   color: '#121212',
                   padding: '8px 16px',
                   fontSize: '0.85rem',

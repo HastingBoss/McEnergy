@@ -13,6 +13,8 @@ const StoreContext = createContext({
   stores: [],
   currentStore: null,
   setCurrentStore: () => {},
+  defaultStore: null,
+  setDefaultStore: () => {},
   loading: true,
   refreshStores: () => {}
 });
@@ -20,6 +22,7 @@ const StoreContext = createContext({
 export function StoreProvider({ children }) {
   const [stores, setStores] = useState(FIVE_STORES);
   const [currentStore, setCurrentStoreState] = useState(FIVE_STORES[0]);
+  const [defaultStore, setDefaultStoreState] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const loadStores = async () => {
@@ -33,27 +36,32 @@ export function StoreProvider({ children }) {
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        // Mapear asegurando orden consistente
-        const storeCodes = ['AR6', 'AR3', 'MTD', 'DEV', 'DEN'];
-        const ordered = storeCodes
-          .map((code) => data.find((s) => s.code === code))
-          .filter(Boolean);
+      const loadedList = (data && data.length > 0) ? data : FIVE_STORES;
+      const storeCodes = ['AR6', 'AR3', 'MTD', 'DEV', 'DEN'];
+      const ordered = storeCodes
+        .map((code) => loadedList.find((s) => s.code === code))
+        .filter(Boolean);
 
-        setStores(ordered.length > 0 ? ordered : data);
-        const savedStoreId = localStorage.getItem('mcd_last_store_id');
-        const match = data.find((s) => s.id === savedStoreId || s.code === savedStoreId);
-        setCurrentStoreState(match || ordered[0] || data[0]);
-      } else {
-        const savedStoreId = localStorage.getItem('mcd_last_store_id');
-        const match = FIVE_STORES.find((s) => s.id === savedStoreId || s.code === savedStoreId);
-        setCurrentStoreState(match || FIVE_STORES[0]);
-      }
+      const finalStores = ordered.length > 0 ? ordered : loadedList;
+      setStores(finalStores);
+
+      // Cargar local por defecto y último seleccionado
+      const defaultStoreId = localStorage.getItem('mcd_default_store_id');
+      const defMatch = finalStores.find((s) => s.id === defaultStoreId || s.code === defaultStoreId);
+      setDefaultStoreState(defMatch || null);
+
+      const savedStoreId = defaultStoreId || localStorage.getItem('mcd_last_store_id');
+      const match = finalStores.find((s) => s.id === savedStoreId || s.code === savedStoreId);
+      setCurrentStoreState(match || defMatch || finalStores[0]);
     } catch (err) {
       console.warn('Usando configuración local de los 5 locales:', err.message);
-      const savedStoreId = localStorage.getItem('mcd_last_store_id');
+      const defaultStoreId = localStorage.getItem('mcd_default_store_id');
+      const defMatch = FIVE_STORES.find((s) => s.id === defaultStoreId || s.code === defaultStoreId);
+      setDefaultStoreState(defMatch || null);
+
+      const savedStoreId = defaultStoreId || localStorage.getItem('mcd_last_store_id');
       const match = FIVE_STORES.find((s) => s.id === savedStoreId || s.code === savedStoreId);
-      setCurrentStoreState(match || FIVE_STORES[0]);
+      setCurrentStoreState(match || defMatch || FIVE_STORES[0]);
     } finally {
       setLoading(false);
     }
@@ -70,12 +78,31 @@ export function StoreProvider({ children }) {
     }
   };
 
+  const setDefaultStore = (store) => {
+    if (!store) {
+      localStorage.removeItem('mcd_default_store_id');
+      setDefaultStoreState(null);
+      return;
+    }
+
+    if (defaultStore?.id === store.id) {
+      // Toggle off si se vuelve a clickear el mismo
+      localStorage.removeItem('mcd_default_store_id');
+      setDefaultStoreState(null);
+    } else {
+      localStorage.setItem('mcd_default_store_id', store.id);
+      setDefaultStoreState(store);
+    }
+  };
+
   return (
     <StoreContext.Provider
       value={{
         stores,
         currentStore,
         setCurrentStore,
+        defaultStore,
+        setDefaultStore,
         loading,
         refreshStores: loadStores
       }}
