@@ -40,12 +40,16 @@ export default function BatchEstimateModal({
         ? prevYearData.reduce((acc, r) => acc + (parseFloat(r.calculated_consumption) || 0), 0) / Math.max(1, prevYearData.length)
         : 600); // Valor fallback razonable si no hay histórico
 
-  // Encontrar todas las fechas del mes y detectar faltantes
+  const now = new Date();
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+  // Encontrar fechas del mes y detectar faltantes únicamente hasta ayer inclusive
   const missingDays = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const padDay = String(d).padStart(2, '0');
     const dateStr = `${year}-${padMonth}-${padDay}`;
-    if (!existingReadingsMap.has(dateStr)) {
+    if (dateStr <= yesterdayStr && !existingReadingsMap.has(dateStr)) {
       missingDays.push({ day: d, dateStr });
     }
   }

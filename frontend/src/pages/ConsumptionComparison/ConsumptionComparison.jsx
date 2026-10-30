@@ -131,8 +131,17 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
     };
   });
 
-  // Cantidad de días faltantes en el mes
-  const missingDaysCount = comparisonRows.filter((r) => !r.currentEntry).length;
+  // Días que ya deberían estar registrados (hasta hoy - 1 día)
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+
+  const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === (now.getMonth() + 1);
+  const isPastMonth = selectedYear < now.getFullYear() || (selectedYear === now.getFullYear() && selectedMonth < (now.getMonth() + 1));
+
+  // Cantidad de días faltantes pasados (hasta ayer)
+  const missingPastDaysCount = comparisonRows.filter(
+    (r) => r.currentDateStr <= yesterdayStr && !r.currentEntry
+  ).length;
 
   // Abrir modal para un día específico
   const handleOpenDayModal = (row) => {
@@ -144,9 +153,10 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
     });
   };
 
-  // Abrir modal de carga manual genérico (primer día faltante o día 1)
+  // Abrir modal de carga manual genérico (primer día faltante hasta ayer o el primero disponible)
   const handleOpenAddDayModal = () => {
-    const firstMissing = comparisonRows.find((r) => !r.currentEntry);
+    const firstMissing = comparisonRows.find((r) => r.currentDateStr <= yesterdayStr && !r.currentEntry)
+      || comparisonRows.find((r) => !r.currentEntry);
     const targetRow = firstMissing || comparisonRows[0];
     handleOpenDayModal(targetRow);
   };
@@ -264,12 +274,16 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
         gap: '10px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#CCCCCC' }}>
-          <Clock size={16} color="#FFBC0D" />
+          <Clock size={16} color={missingPastDaysCount > 0 ? '#FFBC0D' : '#4ade80'} />
           <span>
-            {missingDaysCount > 0 ? (
-              <>Hay <strong style={{ color: '#FFBC0D' }}>{missingDaysCount} días sin lectura</strong> en {MONTH_NAMES[selectedMonth - 1]}</>
+            {missingPastDaysCount > 0 ? (
+              <>Hay <strong style={{ color: '#FFBC0D' }}>{missingPastDaysCount} {missingPastDaysCount === 1 ? 'día sin lectura pendiente' : 'días sin lectura pendientes'}</strong> en {MONTH_NAMES[selectedMonth - 1]} (hasta ayer)</>
             ) : (
-              <span style={{ color: '#4ade80' }}>✓ Mes completo (31/31 días con registro)</span>
+              <span style={{ color: '#4ade80' }}>
+                {isPastMonth
+                  ? `✓ Mes completo (${daysInMonth}/${daysInMonth} días con registro)`
+                  : '✓ Al día (sin lecturas pendientes hasta ayer)'}
+              </span>
             )}
           </span>
         </div>
@@ -296,7 +310,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
             Cargar / Estimar Día
           </button>
 
-          {missingDaysCount > 0 && (
+          {missingPastDaysCount > 0 && (
             <button
               type="button"
               onClick={() => setIsBatchModalOpen(true)}
@@ -312,10 +326,10 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                 alignItems: 'center',
                 gap: '6px'
               }}
-              title="Estimar automáticamente todos los días faltantes del mes"
+              title="Estimar automáticamente los días faltantes pendientes hasta ayer"
             >
               <Sparkles size={15} />
-              Autocompletar Faltantes ({missingDaysCount})
+              Autocompletar Faltantes ({missingPastDaysCount})
             </button>
           )}
         </div>
@@ -528,7 +542,7 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                         <Edit3 size={12} color="#FFBC0D" />
                         Editar
                       </button>
-                    ) : (
+                    ) : row.currentDateStr <= yesterdayStr ? (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -548,10 +562,34 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                           gap: '4px',
                           cursor: 'pointer'
                         }}
-                        title="Cargar o estimar día faltante"
+                        title="Día pendiente: cargar o estimar lectura"
                       >
                         <Sparkles size={12} />
                         Estimar
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenDayModal(row);
+                        }}
+                        style={{
+                          backgroundColor: '#222222',
+                          border: '1px solid #333333',
+                          color: '#888888',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontSize: '0.72rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          cursor: 'pointer'
+                        }}
+                        title="Cargar lectura del día"
+                      >
+                        <Plus size={12} />
+                        Cargar
                       </button>
                     )}
                   </td>
