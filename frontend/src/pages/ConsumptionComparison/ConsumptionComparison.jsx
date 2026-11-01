@@ -111,10 +111,26 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
       diffPct = prevCons > 0 ? ((diff / prevCons) * 100).toFixed(1) : 0;
     }
 
+    // Calcular gap: cuántos días seguidos sin lectura preceden a este día
+    // Si el día anterior (o más) no tiene entrada, el pico puede ser acumulación de gap — no anomalía real
+    let dayGap = 1;
+    if (currentCons !== null && i > 0) {
+      for (let back = 1; back <= i; back++) {
+        const prevD = back;
+        const backDay = day - prevD;
+        const backPad = String(backDay).padStart(2, '0');
+        const backDate = `${selectedYear}-${padMonth}-${backPad}`;
+        const backEntry = currentYearData.find((r) => r.reading_date === backDate);
+        if (backEntry?.calculated_consumption != null) break;
+        dayGap = prevD + 1;
+      }
+    }
+
     // Detección de posibles incongruencias (0 kWh con lectura cargada, o pico > 2.5x promedio)
+    // Excluir falsos positivos causados por acumulación de días sin lectura (gap > 1)
     const isAnomaly = currentCons !== null && (
       (currentCons === 0 && !currentEntry?.is_reset) ||
-      (currentDailyAvg > 0 && currentCons > currentDailyAvg * 2.5)
+      (currentDailyAvg > 0 && currentCons > currentDailyAvg * 2.5 && dayGap <= 1)
     );
 
     return {
@@ -129,7 +145,8 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
       diffPct,
       isEstimated: !!currentEntry?.is_estimated,
       isReset: !!currentEntry?.is_reset,
-      isAnomaly
+      isAnomaly,
+      dayGap
     };
   });
 
@@ -496,11 +513,12 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
           </thead>
           <tbody>
             {comparisonRows.map((row) => {
-              const hasData = row.currentCons !== null || row.prevCons !== null || row.currentEntry !== null;
+              const isFutureDay = row.currentDateStr > todayStr;
+              const isPastMissingDay = !row.currentEntry && row.currentDateStr <= yesterdayStr && !isFutureDay;
+              const hasData = row.currentCons !== null || row.prevCons !== null || row.currentEntry !== null || isPastMissingDay;
               if (!hasData) return null;
 
               const isDaySaving = row.diff !== null && row.diff <= 0;
-              const isFutureDay = row.currentDateStr > todayStr;
 
               return (
                 <tr
@@ -576,6 +594,25 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                           gap: '2px'
                         }} title="Posible valor anómalo o incongruencia (0 kWh o pico inusual)">
                           <AlertTriangle size={10} /> Revisar
+                        </span>
+                      )}
+
+                      {/* Falta medición: día pasado sin lectura ni estimación */}
+                      {isPastMissingDay && (
+                        <span style={{
+                          fontSize: '0.64rem',
+                          backgroundColor: 'rgba(156, 163, 175, 0.1)',
+                          color: '#9CA3AF',
+                          border: '1px solid rgba(156, 163, 175, 0.3)',
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          fontWeight: '700',
+                          textTransform: 'uppercase',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          lineHeight: '1.2'
+                        }} title="Este día no tiene lectura cargada">
+                          Falta medición
                         </span>
                       )}
                     </div>
@@ -742,6 +779,16 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
           kwh: r.currentCons,
           reason: r.currentCons === 0 ? 'Consumo 0 kWh' : `Pico elevado (${r.currentCons} kWh)`
         }))}
+        dailySummary={comparisonRows
+          .filter(r => r.currentDateStr <= yesterdayStr)
+          .map(r => ({
+            day: r.day,
+            kwh: r.currentCons,
+            isMissing: !r.currentEntry,
+            isEstimated: r.isEstimated,
+            isAnomaly: r.isAnomaly,
+            dayGap: r.dayGap ?? 1
+          }))}
         patternInsights={patternInsights}
       />
     </div>

@@ -198,7 +198,7 @@ export default function AiAuditModal({
             }}>
               <RefreshCw size={28} color="#FFC72C" className="animate-spin" />
               <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#FFC72C' }}>
-                Generando balance sintético...
+                Analizando cargas del mes...
               </span>
             </div>
           ) : errorMsg ? (

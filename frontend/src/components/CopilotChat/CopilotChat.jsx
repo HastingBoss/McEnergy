@@ -1,21 +1,34 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Bot, X, Send, Sparkles, RefreshCw, ChevronRight } from 'lucide-react';
 import { askCopilot } from '../../services/aiService';
 import { useStore } from '../../context/StoreContext';
 
-const QUICK_PROMPTS = [
-  '¿Qué pasa si me olvidé de cargar un día?',
-  'Cargué mal el valor del medidor, ¿cómo lo corrijo?',
-  '¿Qué hago si el medidor fue reemplazado o reseteado?'
+const QUICK_PROMPTS_READING = [
+  '¿Qué hago si me olvidé de cargar días anteriores?',
+  'Cargué mal el número del medidor, ¿cómo lo corrijo?',
+  'El medidor físico se cambió o se rompió'
+];
+
+const QUICK_PROMPTS_DASHBOARD = [
+  '¿Por qué un día aparece con alerta de Revisar?',
+  '¿Cómo funciona la estimación automática de días faltantes?',
+  '¿Qué significa que un día tenga consumo estimado?'
 ];
 
 export default function CopilotChat() {
+  const location = useLocation();
   const { stores, currentStore } = useStore();
   const [isOpen, setIsOpen] = useState(false);
+
+  const isReadingRoute = location.pathname === '/' || location.pathname === '';
+  const currentQuickPrompts = isReadingRoute ? QUICK_PROMPTS_READING : QUICK_PROMPTS_DASHBOARD;
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      text: '¡Hola! Soy McEnergy ChatBot. ¿En qué puedo ayudarte con el monitoreo eléctrico, factores de multiplicación o procedimientos de guardia?'
+      text: isReadingRoute
+        ? '¡Hola! Soy McEnergy ChatBot. ¿Tenés alguna duda con la carga de lectura del medidor de hoy?'
+        : '¡Hola, Coordinador! Soy McEnergy ChatBot. Puedo ayudarte a interpretar la comparativa, anomalías, estimaciones y el diagnóstico de Auditoría IA.'
     }
   ]);
   const [inputText, setInputText] = useState('');
@@ -47,7 +60,8 @@ export default function CopilotChat() {
 
       const systemContext = {
         stores: stores || [],
-        activeStore: currentStore ? { name: currentStore.name, code: currentStore.code, multiplier: currentStore.meter_multiplier } : null
+        activeStore: currentStore ? { name: currentStore.name, code: currentStore.code, multiplier: currentStore.meter_multiplier } : null,
+        currentView: isReadingRoute ? 'reading' : 'dashboard'
       };
 
       const response = await askCopilot(query, historyPayload, systemContext);
@@ -68,13 +82,13 @@ export default function CopilotChat() {
 
   return (
     <>
-      {/* Botón Flotante Activar Chat (ubicado por encima de la barra de navegación) */}
+      {/* Botón Flotante Activar Chat (elevado para no solapar botones de modales o navbar) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           style={{
             position: 'fixed',
-            bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(130px + env(safe-area-inset-bottom, 0px))',
             right: '16px',
             zIndex: 990,
             backgroundColor: '#27251F',
@@ -249,7 +263,7 @@ export default function CopilotChat() {
               <span style={{ fontSize: '0.68rem', color: '#888888', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '800' }}>
                 Preguntas frecuentes:
               </span>
-              {QUICK_PROMPTS.map((prompt, i) => (
+              {currentQuickPrompts.map((prompt, i) => (
                 <button
                   key={i}
                   type="button"

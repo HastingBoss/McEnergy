@@ -130,52 +130,48 @@ Responde ÚNICAMENTE un objeto JSON:
 }
 
 /**
- * Genera análisis de consumo, anomalías y recomendaciones gerenciales (Conciso para Coordinadores).
+ * Diagnóstico inteligente de cargas del medidor: detecta anomalías, días faltantes y valores sospechosos.
+ * Reemplaza el modelo de reporte estático — produce un diagnóstico técnico orientado a acción.
  */
-async function generateConsumptionAudit({ storeName, monthName, year, kpis = {}, anomalies = [], patternInsights = {} }) {
-  const { weekendAvgKwh, weekdayAvgKwh, topHighDays = [], targetKwh, meetsTarget } = patternInsights;
+async function generateConsumptionAudit({ storeName, monthName, year, kpis = {}, anomalies = [], dailySummary = [], patternInsights = {} }) {
+  // Construir resumen día a día para el diagnóstico
+  const dayLines = dailySummary.length > 0
+    ? dailySummary.map(d => {
+        const status = d.isMissing
+          ? 'SIN LECTURA'
+          : d.isEstimated
+            ? `ESTIMADO: ${d.kwh} kWh`
+            : d.kwh === 0
+              ? 'LECTURA EN CERO (0 kWh)'
+              : `${d.kwh} kWh`;
+        const gap = d.dayGap > 1 ? ` [GAP: ${d.dayGap} días sin datos previos]` : '';
+        return `- Día ${d.day}: ${status}${gap}`;
+      }).join('\n')
+    : anomalies.length > 0
+      ? anomalies.map(a => `- Día ${a.day}: ${a.reason} (${a.kwh} kWh)`).join('\n')
+      : '- Sin datos de días individuales disponibles.';
 
-  const topDaysText = topHighDays.length > 0
-    ? topHighDays.map(d => `- ${d.dayName} ${d.day} de ${monthName}: ${d.kwh.toLocaleString('es-AR')} kWh (${d.diffVsPrevYear > 0 ? '+' : ''}${d.diffVsPrevYear?.toFixed(1)} kWh vs año anterior)`).join('\n')
-    : 'No hay registros suficientes de días pico.';
+  const prompt = `Sos el sistema de diagnóstico técnico de McEnergy para McDonald's Argentina.
+Tu tarea es analizar las cargas de medidor del local ${storeName || 'desconocido'} en ${monthName} ${year} y producir un diagnóstico técnico conciso de los problemas encontrados.
 
-  const weekendComparison = (weekendAvgKwh && weekdayAvgKwh)
-    ? `Promedio fin de semana: ${weekendAvgKwh.toLocaleString('es-AR')} kWh/día vs Días hábiles: ${weekdayAvgKwh.toLocaleString('es-AR')} kWh/día (Diferencia: ${(weekendAvgKwh - weekdayAvgKwh > 0 ? '+' : '')}${(weekendAvgKwh - weekdayAvgKwh).toFixed(1)} kWh)`
-    : 'Datos insuficientes para comparar fines de semana.';
+Promedio diario normal del local: ${kpis.dailyAvgKwh?.toFixed(1) || 'desconocido'} kWh/día
+Total acumulado: ${kpis.totalKwhCurrent?.toLocaleString('es-AR') || 0} kWh
+Días con lecturas cargadas: resumen completo a continuación.
 
-  const prompt = `Sos el Coordinador de Mantenimiento de McDonald's Argentina (Arcos Dorados).
-Elaborá un reporte de auditoría energética BREVE, SINTÉTICO Y DIRECTO para el coordinador sobre el local ${storeName || 'Red Global'} en ${monthName} ${year}.
+Detalle de cargas por día:
+${dayLines}
 
-Métricas consolidadas reales:
-- Consumo ${year}: ${kpis.totalKwhCurrent?.toLocaleString('es-AR') || 0} kWh
-- Consumo ${year - 1}: ${kpis.totalKwhPrior?.toLocaleString('es-AR') || 0} kWh
-- Variación interanual: ${kpis.deltaPercent !== undefined ? (kpis.deltaPercent > 0 ? '+' : '') + kpis.deltaPercent.toFixed(2) + '%' : 'N/A'} (${kpis.deltaKwh !== undefined ? (kpis.deltaKwh > 0 ? '+' : '') + kpis.deltaKwh.toFixed(1) + ' kWh' : ''})
-- Meta corporativa (-3% vs ${year - 1}): Meta de ${targetKwh ? targetKwh.toLocaleString('es-AR') + ' kWh' : 'N/A'} (${meetsTarget ? 'CUMPLE META' : 'NO CUMPLE META'})
-- Promedio diario: ${kpis.dailyAvgKwh?.toFixed(1) || 0} kWh/día
-- Comparativa Fines de semana vs Días de semana: ${weekendComparison}
-- Días con mayor consumo registrado:
-${topDaysText}
-- Alertas / Incongruencias detectadas: ${anomalíasFormat(anomalies)}
+REGLAS ESTRICTAS:
+1. NUNCA generes un reporte de consumo. Tu salida es exclusivamente un diagnóstico de problemas en las cargas.
+2. Para CADA problema encontrado, indicá: Día → Problema detectado → Causa probable → Acción recomendada.
+3. Si un pico alto ocurre luego de días sin lectura (GAP), indicá que es probable acumulación de días y NO una anomalía real de consumo.
+4. Si hay lecturas en cero sin reset de medidor, marcalas como sospechosas.
+5. Días estimados no son un error, pero si hay muchos seguidos (más de 3), indicalo como alerta de cobertura de datos.
+6. Si no hay ningún problema: respondé exactamente "✅ Sin anomalías detectadas en las cargas del mes."
+7. Formato de salida: lista numerada, máximo 12 ítems. Sin introducciones ni conclusiones.
 
-REGLAS DE ORO:
-1. MÁXIMO 10 a 14 LÍNEAS TOTALES. Nada de introducciones ni párrafos largos de teoría.
-2. Enfocate exclusivamente en el balance de consumo, ahorro/sobreconsumo y el comportamiento en fines de semana o feriados.
-3. Si un día pico coincide con fin de semana o feriado nacional (ej: 12 de Octubre, fines de semana largos), marcalo puntualmente.
-4. Prohibido inventar supuestos sobre equipos (no inventes fotosensibles, freidoras o anomalías que no existieron).
-
-Estructura obligatoria en Markdown:
-📊 *Balance y Ahorro:*
-- Consumo: ${kpis.totalKwhCurrent?.toLocaleString('es-AR') || 0} kWh vs ${kpis.totalKwhPrior?.toLocaleString('es-AR') || 0} kWh (${kpis.deltaPercent > 0 ? '+' : ''}${kpis.deltaPercent?.toFixed(1)}%)
-- Meta -3%: [CUMPLE con ahorro de X kWh / NO CUMPLE por exceso de X kWh]
-- Promedio: ${kpis.dailyAvgKwh?.toFixed(1) || 0} kWh/día
-
-📅 *Fines de Semana, Feriados y Picos:*
-- Fines de semana vs Semana: [Síntesis en 1 línea del promedio y si los findes traccionaron al alza]
-- Días con mayor demanda: [Citar brevemente las 1-2 fechas pico con día de la semana y si fue feriado/finde]
-${anomalies.length > 0 ? '- Desvíos/Alertas: [1 línea con las alertas registradas]' : ''}
-
-⚡ *Acción Operativa:*
-- [1 sola recomendación concreta y accionable para el técnico de guardia en base al sobreconsumo o felicitación técnica por ahorro]`;
+Formato de cada ítem:
+[N]. Día [X]: [Problema] — Causa probable: [causa] — Acción: [acción concreta]`;
 
   const response = await generateWithFallback(prompt, {
     temperature: 0.1
@@ -199,23 +195,47 @@ async function copilotChat({ message, history = [], systemContext = {} }) {
     ? systemContext.stores.map(s => `- ${s.name} (${s.code}): Medidor ${s.meter_model || 'Schneider PM5350'}, Display ${s.display_indicator || '1.8.0'}, TC x${s.meter_multiplier || 1}`).join('\n')
     : 'AR3, AR6, MTD, DEV, DEN con multiplicadores TC x40, x60 o x1.';
 
-  const systemInstruction = `Sos McEnergy ChatBot, el asistente técnico especializado en el sistema de control y monitoreo eléctrico de McDonald's Argentina.
-Respondé de manera técnica, concisa y directa.
+  const currentView = systemContext.currentView || 'reading';
 
-Contexto de la red:
+  const readingInstruction = `Sos McEnergy ChatBot, asistente de carga de lecturas de medidores para el operario de guardia de McDonald's Argentina.
+Tu rol es ayudar al operario del día a cargar la lectura correctamente y derivar problemas que no puede resolver a la administración.
+
+Reglas estrictas:
+- Respondé de forma muy breve y simple. Nada de jerga técnica que un operario no entienda.
+- Si el problema requiere acceso al sistema, editar registros pasados, cambios de configuración o decisiones de mantenimiento, respondé EXACTAMENTE con: "Avisale a la administración: [acción concreta que deben hacer]".
+- No expliques el panel del coordinador, la comparativa anual, ni funciones del dashboard.
+- Tu único foco: el proceso de carga diaria de lectura del medidor.
+
+Contexto de locales registrados:
 ${storesContext}
 
-Procedimientos clave:
-- Multiplicador TC: Convierte la lectura del display físico a kWh reales consumidos.
-- Reinicio de medidor (is_reset): Debe marcarse cuando se reemplaza el medidor físico o se resetea a cero para evitar picos falsos.
-- Horario de lectura: Todos los días a las 12:00 PM (mediodía).
-- Comparativa: Se audita el consumo de 2026 frente a 2025 día a día.
+Historial:
+${(history || []).map(h => `${h.role === 'user' ? 'Operario' : 'ChatBot'}: ${h.text}`).join('\n')}
 
-Historial de la conversación:
-${(history || []).map(h => `${h.role === 'user' ? 'Usuario' : 'ChatBot'}: ${h.text}`).join('\n')}
-
-Consulta actual del usuario:
+Consulta del operario:
 ${message}`;
+
+  const dashboardInstruction = `Sos McEnergy ChatBot, asistente técnico del Coordinador de Mantenimiento de McDonald's Argentina.
+Ayudás a interpretar y operar el panel de control eléctrico: comparativa anual, estimaciones, auditoría IA, importación de lecturas, anomalías y configuración de medidores.
+
+Procedimientos clave del sistema:
+- Multiplicador TC: Convierte la lectura del display físico a kWh reales (ej: display 1000 x TC40 = 40.000 kWh).
+- Reinicio de medidor (is_reset): Se marca al reemplazar o resetear el medidor para evitar picos falsos en el cálculo de consumo.
+- Estimación automática: Completa días faltantes usando el promedio del mismo día del año anterior con ajuste de tendencia mensual.
+- Anomalía "Revisar": Se dispara cuando el consumo diario supera 2.5x el promedio del mes, excluyendo días que siguen a un gap de lecturas (el pico sería acumulación, no consumo real).
+- Auditoría IA: Diagnostica problema por problema en las cargas del mes — no genera un reporte de consumo general.
+- Importación por lote: Procesa texto libre (chats de WhatsApp, notas) y extrae lecturas estructuradas.
+
+Contexto de locales:
+${storesContext}
+
+Historial:
+${(history || []).map(h => `${h.role === 'user' ? 'Coordinador' : 'ChatBot'}: ${h.text}`).join('\n')}
+
+Consulta del coordinador:
+${message}`;
+
+  const systemInstruction = currentView === 'reading' ? readingInstruction : dashboardInstruction;
 
   const response = await generateWithFallback(systemInstruction, {
     temperature: 0.3

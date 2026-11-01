@@ -158,3 +158,40 @@ McEnergy integra la suite de modelos Gemini Flash (versión configurable 3.5 con
 - Botón flotante accesible desde cualquier pantalla.
 - Responde consultas sobre especificaciones de medidores, factores TC por local, procedimientos ante reemplazo de equipos (`is_reset`) y dudas de operación.
 
+---
+
+## 6. Preguntas Frecuentes del ChatBot (Opciones para elegir)
+
+> **Nota coordinador:** Las preguntas frecuentes del ChatBot se adaptan según la pantalla activa.
+> Elegí de las listas de abajo cuáles querés dejar visibles en cada vista. Avisame cuáles mantener.
+
+### 6.1 Opciones — Vista Lectura (pantalla del operario `/`)
+
+| # | Pregunta propuesta |
+|---|---|
+| A | ¿Qué hago si me olvidé de cargar días anteriores? |
+| B | Cargué mal el número del medidor, ¿cómo lo corrijo? |
+| C | El medidor físico se cambió o se rompió |
+| D | ¿A qué hora tengo que cargar la lectura? |
+| E | ¿Qué número debo ingresar del display? |
+| F | No encuentro mi local en la lista, ¿qué hago? |
+
+**Actualmente configuradas:** A, B, C
+
+---
+
+### 6.2 Opciones — Vista Dashboard (pantalla del coordinador `/dashboard`)
+
+| # | Pregunta propuesta |
+|---|---|
+| A | ¿Por qué un día aparece con alerta de Revisar? |
+| B | ¿Cómo funciona la estimación automática de días faltantes? |
+| C | ¿Qué significa que un día tenga consumo estimado? |
+| D | ¿Qué es el factor multiplicador TC y cómo afecta el consumo? |
+| E | ¿Cómo uso la Auditoría IA? |
+| F | ¿Qué significa la variación interanual en la comparativa? |
+| G | ¿Cómo importo lecturas desde un mensaje de WhatsApp? |
+| H | ¿Qué hago si un local tiene el medidor reseteado a cero? |
+
+**Actualmente configuradas:** A, B, C
+
