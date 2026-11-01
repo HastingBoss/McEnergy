@@ -7,13 +7,13 @@ import { useStore } from '../../context/StoreContext';
 const QUICK_PROMPTS_READING = [
   '¿Qué hago si me olvidé de cargar días anteriores?',
   'Cargué mal el número del medidor, ¿cómo lo corrijo?',
-  'El medidor físico se cambió o se rompió'
+  '¿Qué número debo ingresar del display?'
 ];
 
 const QUICK_PROMPTS_DASHBOARD = [
   '¿Por qué un día aparece con alerta de Revisar?',
-  '¿Cómo funciona la estimación automática de días faltantes?',
-  '¿Qué significa que un día tenga consumo estimado?'
+  '¿Qué significa que un día tenga consumo estimado?',
+  '¿Cómo uso la Auditoría IA?'
 ];
 
 export default function CopilotChat() {

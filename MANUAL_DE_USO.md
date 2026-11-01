@@ -176,7 +176,7 @@ McEnergy integra la suite de modelos Gemini Flash (versión configurable 3.5 con
 | E | ¿Qué número debo ingresar del display? |
 | F | No encuentro mi local en la lista, ¿qué hago? |
 
-**Actualmente configuradas:** A, B, C
+**Actualmente configuradas:** A, B, E
 
 ---
 
@@ -193,5 +193,5 @@ McEnergy integra la suite de modelos Gemini Flash (versión configurable 3.5 con
 | G | ¿Cómo importo lecturas desde un mensaje de WhatsApp? |
 | H | ¿Qué hago si un local tiene el medidor reseteado a cero? |
 
-**Actualmente configuradas:** A, B, C
+**Actualmente configuradas:** A, B, E
 
