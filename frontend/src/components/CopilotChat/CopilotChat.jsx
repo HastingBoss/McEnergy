@@ -279,22 +279,37 @@ export default function CopilotChat() {
 
             {isTyping && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: '#1D1D1D', border: '1px solid #FFC72C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Bot size={14} color="#FFC72C" />
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  backgroundColor: '#1D1D1D',
+                  border: '1.5px solid #FFC72C',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 12px rgba(255, 199, 44, 0.35)',
+                  flexShrink: 0
+                }}>
+                  <Bot size={15} color="#FFC72C" className="animate-pulse" />
                 </div>
                 <div style={{
                   backgroundColor: '#1D1D1D',
                   border: '1px solid #3A3833',
-                  borderRadius: '12px',
-                  padding: '8px 12px',
-                  color: '#FFC72C',
-                  fontSize: '0.78rem',
+                  borderRadius: '14px',
+                  padding: '9px 14px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '10px'
                 }}>
-                  <RefreshCw size={12} className="animate-spin" />
-                  Escribiendo respuesta...
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <span className="ai-dot-1" style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FFC72C', display: 'inline-block' }} />
+                    <span className="ai-dot-2" style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FFC72C', display: 'inline-block' }} />
+                    <span className="ai-dot-3" style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FFC72C', display: 'inline-block' }} />
+                  </div>
+                  <span style={{ fontSize: '0.78rem', color: '#FFC72C', fontWeight: '700' }}>
+                    Gemini pensando...
+                  </span>
                 </div>
               </div>
             )}

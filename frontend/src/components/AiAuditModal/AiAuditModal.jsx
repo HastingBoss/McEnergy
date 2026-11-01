@@ -17,6 +17,37 @@ export default function AiAuditModal({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [elapsedSec, setElapsedSec] = useState(0);
+
+  const LOADING_STEPS = [
+    'Consultando registros y lecturas del mes...',
+    'Detectando picos, días faltantes y desvíos...',
+    'Gemini Flash diagnosticando causas operativas...',
+    'Sintetizando balance y acciones recomendadas...'
+  ];
+
+  useEffect(() => {
+    let timer;
+    if (isLoading) {
+      setLoadingStep(0);
+      setElapsedSec(0);
+      timer = setInterval(() => {
+        setElapsedSec((s) => s + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isLoading]);
+
+  useEffect(() => {
+    let stepTimer;
+    if (isLoading) {
+      stepTimer = setInterval(() => {
+        setLoadingStep((prev) => (prev + 1) % LOADING_STEPS.length);
+      }, 2200);
+    }
+    return () => clearInterval(stepTimer);
+  }, [isLoading]);
 
   useEffect(() => {
     if (isOpen) {
@@ -193,13 +224,77 @@ export default function AiAuditModal({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '30px 16px',
-              gap: '10px'
+              padding: '40px 20px',
+              gap: '16px',
+              backgroundColor: '#171717',
+              borderRadius: '12px',
+              border: '1px solid #2F2D28',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              <RefreshCw size={28} color="#FFC72C" className="animate-spin" />
-              <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#FFC72C' }}>
-                Analizando cargas del mes...
-              </span>
+              {/* Barra superior de brillo animado */}
+              <div className="ai-shimmer-bg" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px' }} />
+
+              {/* Ícono central con efecto de anillos de pulso */}
+              <div style={{ position: 'relative', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{
+                  position: 'absolute',
+                  inset: '-6px',
+                  borderRadius: '50%',
+                  border: '2px solid rgba(255, 199, 44, 0.4)',
+                  animation: 'aiRippleRing 2s ease-out infinite'
+                }} />
+                <div style={{
+                  position: 'absolute',
+                  inset: '-14px',
+                  borderRadius: '50%',
+                  border: '1.5px solid rgba(255, 199, 44, 0.2)',
+                  animation: 'aiRippleRing 2s ease-out infinite',
+                  animationDelay: '0.6s'
+                }} />
+                <div style={{
+                  width: '54px',
+                  height: '54px',
+                  borderRadius: '50%',
+                  backgroundColor: '#27251F',
+                  border: '2px solid #FFC72C',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 20px rgba(255, 199, 44, 0.4)',
+                  zIndex: 2
+                }}>
+                  <Sparkles size={26} color="#FFC72C" className="animate-pulse" />
+                </div>
+              </div>
+
+              {/* Textos dinámicos de progreso */}
+              <div style={{ textAlign: 'center', maxWidth: '380px' }}>
+                <div style={{
+                  fontSize: '0.94rem',
+                  fontWeight: '800',
+                  color: '#FFFFFF',
+                  marginBottom: '6px',
+                  minHeight: '26px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  transition: 'opacity 0.2s ease'
+                }}>
+                  <span>{LOADING_STEPS[loadingStep]}</span>
+                </div>
+                <p style={{ fontSize: '0.74rem', color: '#888', margin: 0 }}>
+                  Motor Gemini 3.5 Flash procesando en tiempo real ({elapsedSec}s)
+                </p>
+              </div>
+
+              {/* Puntos pulsantes sincronizados */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                <div className="ai-dot-1" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FFC72C' }} />
+                <div className="ai-dot-2" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FFC72C' }} />
+                <div className="ai-dot-3" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FFC72C' }} />
+              </div>
             </div>
           ) : errorMsg ? (
             <div style={{

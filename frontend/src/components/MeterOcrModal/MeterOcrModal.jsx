@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, Check, RefreshCw, AlertCircle, Sparkles, Pencil } from 'lucide-react';
 import { scanMeterDisplay } from '../../services/aiService';
 
@@ -9,9 +9,32 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
   const [errorMsg, setErrorMsg] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedValue, setEditedValue] = useState('');
+  const [scanStep, setScanStep] = useState(0);
+  const [scanSec, setScanSec] = useState(0);
+
+  const SCAN_STEPS = [
+    'Enfocando display del medidor...',
+    'Buscando indicador de energía activa (1.8.0)...',
+    'Gemini Vision procesando dígitos de lectura...',
+    'Filtrando ceros y verificando decimales...'
+  ];
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+
+  useEffect(() => {
+    let t1, t2;
+    if (isScanning) {
+      setScanStep(0);
+      setScanSec(0);
+      t1 = setInterval(() => setScanSec((s) => s + 1), 1000);
+      t2 = setInterval(() => setScanStep((step) => (step + 1) % SCAN_STEPS.length), 2000);
+    }
+    return () => {
+      clearInterval(t1);
+      clearInterval(t2);
+    };
+  }, [isScanning]);
 
   if (!isOpen) return null;
 
@@ -263,25 +286,53 @@ export default function MeterOcrModal({ isOpen, onClose, currentStore, onApplyRe
                 <div style={{
                   position: 'absolute',
                   inset: 0,
-                  backgroundColor: 'rgba(0,0,0,0.65)',
+                  backgroundColor: 'rgba(0,0,0,0.72)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '12px',
+                  gap: '14px',
                   padding: '16px'
                 }}>
+                  {/* Láser de escaneo animado vertical */}
+                  <div className="ai-scan-laser" />
+
+                  {/* Corner targets */}
+                  <div style={{ position: 'absolute', top: 12, left: 12, width: 20, height: 20, borderTop: '2px solid #FFC72C', borderLeft: '2px solid #FFC72C' }} />
+                  <div style={{ position: 'absolute', top: 12, right: 12, width: 20, height: 20, borderTop: '2px solid #FFC72C', borderRight: '2px solid #FFC72C' }} />
+                  <div style={{ position: 'absolute', bottom: 12, left: 12, width: 20, height: 20, borderBottom: '2px solid #FFC72C', borderLeft: '2px solid #FFC72C' }} />
+                  <div style={{ position: 'absolute', bottom: 12, right: 12, width: 20, height: 20, borderBottom: '2px solid #FFC72C', borderRight: '2px solid #FFC72C' }} />
+
+                  {/* Ícono central pulsante */}
                   <div style={{
-                    width: '36px',
-                    height: '36px',
-                    border: '3px solid #FFC72C',
-                    borderTopColor: 'transparent',
+                    width: '50px',
+                    height: '50px',
                     borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                  <span style={{ fontSize: '0.9rem', color: '#FFC72C', fontWeight: '800', textAlign: 'center' }}>
-                    Gemini Vision analizando display...
-                  </span>
+                    backgroundColor: '#1E1E1E',
+                    border: '2px solid #FFC72C',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 0 20px rgba(255, 199, 44, 0.5)'
+                  }}>
+                    <Camera size={22} color="#FFC72C" className="animate-pulse" />
+                  </div>
+
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.92rem', color: '#FFC72C', fontWeight: '800', marginBottom: '4px' }}>
+                      {SCAN_STEPS[scanStep]}
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#A0A0A0' }}>
+                      Gemini Vision analizando ({scanSec}s)
+                    </span>
+                  </div>
+
+                  {/* Puntos pulsantes */}
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <div className="ai-dot-1" style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#FFC72C' }} />
+                    <div className="ai-dot-2" style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#FFC72C' }} />
+                    <div className="ai-dot-3" style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#FFC72C' }} />
+                  </div>
                 </div>
               )}
             </div>

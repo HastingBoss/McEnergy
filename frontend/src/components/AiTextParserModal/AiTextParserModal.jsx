@@ -128,6 +128,38 @@ export default function AiTextParserModal({ isOpen, onClose, stores, onApplyText
           />
         </div>
 
+        {isProcessing && (
+          <div style={{
+            backgroundColor: '#1E1B13',
+            border: '1.5px solid #FFC72C',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            marginBottom: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 0 16px rgba(255, 199, 44, 0.2)'
+          }}>
+            <div className="ai-shimmer-bg" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px' }} />
+            <Sparkles size={22} color="#FFC72C" className="animate-pulse" style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.86rem', fontWeight: '800', color: '#FFFFFF' }}>
+                Gemini procesando texto y detectando lecturas...
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#A0A0A0' }}>
+                Normalizando locales, fechas y mediciones en tiempo real
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '5px' }}>
+              <span className="ai-dot-1" style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FFC72C' }} />
+              <span className="ai-dot-2" style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FFC72C' }} />
+              <span className="ai-dot-3" style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#FFC72C' }} />
+            </div>
+          </div>
+        )}
+
         {errorMsg && (
           <div style={{
             backgroundColor: 'rgba(218, 41, 28, 0.15)',
