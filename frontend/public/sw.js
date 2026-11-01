@@ -71,3 +71,17 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Sincronización en segundo plano (Background Sync API)
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-meter-readings') {
+    event.waitUntil(
+      self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'TRIGGER_OFFLINE_SYNC' });
+        });
+      })
+    );
+  }
+});
+

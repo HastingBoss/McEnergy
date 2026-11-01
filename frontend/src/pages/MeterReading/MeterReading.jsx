@@ -10,7 +10,10 @@ import {
   Zap,
   ArrowRight,
   Camera,
-  Sparkles
+  Sparkles,
+  Wifi,
+  WifiOff,
+  RefreshCw
 } from 'lucide-react';
 import MeterOcrModal from '../../components/MeterOcrModal/MeterOcrModal';
 import AppFooter from '../../components/AppFooter/AppFooter';
@@ -24,6 +27,12 @@ import {
   saveMeterReading,
   formatWhatsAppReport
 } from '../../services/meterService';
+import {
+  getPendingCount,
+  subscribeToSyncChanges,
+  syncAllPendingReadings,
+  isCurrentlySyncing
+} from '../../services/offlineSyncService';
 
 export default function MeterReading() {
   const { stores, currentStore, setCurrentStore } = useStore();
@@ -43,7 +52,29 @@ export default function MeterReading() {
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
 
+  // Estados de conectividad y cola offline
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const multiplier = currentStore?.meter_multiplier || 1.0;
+
+  useEffect(() => {
+    const updateSyncStatus = async () => {
+      setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+      const count = await getPendingCount();
+      setPendingCount(count);
+      setIsSyncing(isCurrentlySyncing());
+    };
+
+    updateSyncStatus();
+    const unsubscribe = subscribeToSyncChanges(() => {
+      updateSyncStatus();
+      loadDataForCurrentStore();
+    });
+
+    return () => unsubscribe();
+  }, [currentStore?.id]);
 
   useEffect(() => {
     if (currentStore?.id) {
@@ -147,7 +178,7 @@ export default function MeterReading() {
     setShowConfirmUpload(true);
   };
 
-  // Confirmar y guardar la carga en Supabase
+  // Confirmar y guardar la carga en Supabase o IndexedDB (offline)
   const handleExecuteSave = async () => {
     setLoading(true);
     setShowConfirmUpload(false);
@@ -157,7 +188,7 @@ export default function MeterReading() {
     const wasAdminNotified = adminNotified;
 
     try {
-      await saveMeterReading({
+      const savedResult = await saveMeterReading({
         storeId: currentStore.id,
         readingDate: todayStr,
         displayValue: numericVal,
@@ -168,11 +199,19 @@ export default function MeterReading() {
         notes: wasAdminNotified ? 'Variación inusual confirmada por técnico en campo. Notificado al administrador.' : null
       });
 
-      setStatusMessage({
-        type: 'success',
-        text: `✓ Lectura de ${currentStore.name} registrada exitosamente.`,
-        adminNotice: wasAdminNotified ? 'Se le notificará al administrador para que lo revise.' : null
-      });
+      if (savedResult?._isOffline) {
+        setStatusMessage({
+          type: 'warning',
+          text: '⚡ Guardado sin conexión: la lectura se almacenó localmente y se enviará automáticamente a la base de datos apenas recuperes señal.',
+          isOffline: true
+        });
+      } else {
+        setStatusMessage({
+          type: 'success',
+          text: `✓ Lectura de ${currentStore.name} registrada exitosamente.`,
+          adminNotice: wasAdminNotified ? 'Se le notificará al administrador para que lo revise.' : null
+        });
+      }
 
       setAdminNotified(false);
       await loadDataForCurrentStore();
@@ -180,10 +219,31 @@ export default function MeterReading() {
       console.error('Error al guardar lectura:', err);
       setStatusMessage({
         type: 'error',
-        text: 'Error de conexión: ' + (err.message || 'No se pudo guardar la lectura.')
+        text: 'Error al registrar: ' + (err.message || 'No se pudo guardar la lectura.')
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Disparar sincronización manual de la cola offline
+  const handleSyncNow = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await syncAllPendingReadings(saveMeterReading);
+      if (res.syncedCount > 0) {
+        setStatusMessage({
+          type: 'success',
+          text: `✓ ${res.syncedCount} lectura(s) sincronizada(s) con la base de datos.`
+        });
+        await loadDataForCurrentStore();
+      }
+    } catch (err) {
+      console.error('Error durante sincronización manual:', err);
+    } finally {
+      setIsSyncing(false);
+      const count = await getPendingCount();
+      setPendingCount(count);
     }
   };
 
@@ -289,6 +349,60 @@ export default function MeterReading() {
         </div>
       )}
 
+      {/* Banner de Conectividad Offline / Pendientes de Sincronización */}
+      {(!isOnline || pendingCount > 0) && (
+        <div style={{
+          backgroundColor: !isOnline ? '#2A1F13' : '#142319',
+          border: !isOnline ? '1.5px solid #F59E0B' : '1.5px solid #22c55e',
+          borderRadius: '12px',
+          padding: '10px 14px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '10px',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.4)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem' }}>
+            {!isOnline ? (
+              <WifiOff size={18} color="#F59E0B" style={{ flexShrink: 0 }} />
+            ) : (
+              <Wifi size={18} color="#4ade80" style={{ flexShrink: 0 }} />
+            )}
+            <span style={{ color: !isOnline ? '#FCD34D' : '#86EFAC', fontWeight: '600', lineHeight: '1.3' }}>
+              {!isOnline
+                ? 'Modo sin conexión: las lecturas se guardan localmente en tu dispositivo y se enviarán al recuperar señal.'
+                : `${pendingCount} lectura(s) guardada(s) localmente lista(s) para sincronizar.`}
+            </span>
+          </div>
+
+          {isOnline && pendingCount > 0 && (
+            <button
+              type="button"
+              onClick={handleSyncNow}
+              disabled={isSyncing}
+              style={{
+                backgroundColor: '#22c55e',
+                color: '#000000',
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.78rem',
+                fontWeight: '800',
+                cursor: isSyncing ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                flexShrink: 0
+              }}
+            >
+              <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
+              {isSyncing ? 'Enviando...' : 'Sincronizar'}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* HUD PRINCIPAL - Tarjeta de Alto Contraste para Luz Solar */}
       <div className="card" style={{
         backgroundColor: '#27251F',
@@ -356,6 +470,25 @@ export default function MeterReading() {
               <span style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '4px', display: 'block' }}>
                 Registrado para hoy ({todayReading.reading_date})
               </span>
+              {todayReading.is_pending_sync && (
+                <div style={{ marginTop: '8px' }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    backgroundColor: 'rgba(255, 199, 44, 0.15)',
+                    color: '#FFC72C',
+                    border: '1px solid #FFC72C',
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    fontSize: '0.72rem',
+                    fontWeight: '800',
+                    textTransform: 'uppercase'
+                  }}>
+                    ⏳ Guardado Offline (Pendiente de sincronizar)
+                  </span>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>

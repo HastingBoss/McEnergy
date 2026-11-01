@@ -1,4 +1,17 @@
 import { supabase } from './supabaseClient';
+import {
+  savePendingReading,
+  getPendingReadings,
+  getPendingReadingForDate,
+  syncAllPendingReadings
+} from './offlineSyncService';
+
+// Auto-sincronizar lecturas pendientes apenas el dispositivo recupera señal de red
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    syncAllPendingReadings(saveMeterReading);
+  });
+}
 
 export function calculateKwh(displayValue, multiplier) {
   const val = parseFloat(displayValue) || 0;
@@ -22,23 +35,6 @@ export function getPreviousYearDate(dateString) {
   return `${prevYear}-${String(month).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
 }
 
-export async function fetchStoreReadings(storeId, limit = 14) {
-  try {
-    const { data, error } = await supabase
-      .from('meter_readings')
-      .select('*')
-      .eq('store_id', storeId)
-      .order('reading_date', { ascending: false })
-      .limit(limit);
-
-    if (error) throw error;
-    return data || [];
-  } catch (err) {
-    console.error('Error fetching store readings:', err);
-    return [];
-  }
-}
-
 export async function fetchReadingForDate(storeId, dateString) {
   try {
     const { data, error } = await supabase
@@ -49,11 +45,82 @@ export async function fetchReadingForDate(storeId, dateString) {
       .maybeSingle();
 
     if (error) throw error;
-    return data;
+    if (data) return data;
   } catch (err) {
-    console.error(`Error fetching reading for ${dateString}:`, err);
-    return null;
+    console.warn(`Error fetching reading for ${dateString} from Supabase, checking offline storage:`, err);
   }
+
+  // Fallback a lectura pendiente en IndexedDB si no hay red o no se encontró en Supabase
+  const pending = await getPendingReadingForDate(storeId, dateString);
+  if (pending) {
+    return {
+      id: pending.id,
+      store_id: pending.storeId,
+      reading_date: pending.readingDate,
+      display_value: pending.displayValue,
+      applied_multiplier: pending.multiplier,
+      kwh_reading: calculateKwh(pending.displayValue, pending.multiplier),
+      is_reset: pending.isReset,
+      calculated_consumption: null,
+      is_estimated: pending.isEstimated,
+      notes: pending.notes,
+      technician_name: pending.technicianName,
+      is_pending_sync: true,
+      _isOffline: true
+    };
+  }
+
+  return null;
+}
+
+export async function fetchStoreReadings(storeId, limit = 14) {
+  let list = [];
+  try {
+    const { data, error } = await supabase
+      .from('meter_readings')
+      .select('*')
+      .eq('store_id', storeId)
+      .order('reading_date', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    list = data || [];
+  } catch (err) {
+    console.warn('Error fetching store readings from Supabase, checking offline:', err);
+  }
+
+  // Fusionar lecturas pendientes de sincronización
+  try {
+    const pendingList = await getPendingReadings();
+    const relevant = pendingList.filter((p) => p.storeId === storeId);
+    for (const pending of relevant) {
+      const existingIdx = list.findIndex((r) => r.reading_date === pending.readingDate);
+      const formatted = {
+        id: pending.id,
+        store_id: pending.storeId,
+        reading_date: pending.readingDate,
+        display_value: pending.displayValue,
+        applied_multiplier: pending.multiplier,
+        kwh_reading: calculateKwh(pending.displayValue, pending.multiplier),
+        is_reset: pending.isReset,
+        calculated_consumption: null,
+        is_estimated: pending.isEstimated,
+        notes: pending.notes,
+        technician_name: pending.technicianName,
+        is_pending_sync: true,
+        _isOffline: true
+      };
+      if (existingIdx >= 0) {
+        list[existingIdx] = formatted;
+      } else {
+        list.unshift(formatted);
+      }
+    }
+  } catch (e) {
+    console.warn('Error merging pending readings in fetchStoreReadings:', e);
+  }
+
+  return list;
 }
 
 export async function fetchMonthlyComparison(storeId, year, month) {
@@ -64,6 +131,9 @@ export async function fetchMonthlyComparison(storeId, year, month) {
   const prevYear = year - 1;
   const startDatePrev = `${prevYear}-${padMonth}-01`;
   const endDatePrev = `${prevYear}-${padMonth}-31`;
+
+  let currentYearData = [];
+  let prevYearData = [];
 
   try {
     const [currentRes, prevRes] = await Promise.all([
@@ -83,17 +153,48 @@ export async function fetchMonthlyComparison(storeId, year, month) {
         .order('reading_date', { ascending: true })
     ]);
 
-    if (currentRes.error) throw currentRes.error;
-    if (prevRes.error) throw prevRes.error;
-
-    return {
-      currentYearData: currentRes.data || [],
-      prevYearData: prevRes.data || []
-    };
+    if (!currentRes.error) currentYearData = currentRes.data || [];
+    if (!prevRes.error) prevYearData = prevRes.data || [];
   } catch (err) {
-    console.error('Error fetching monthly comparison:', err);
-    return { currentYearData: [], prevYearData: [] };
+    console.warn('Error fetching monthly comparison from Supabase:', err);
   }
+
+  // Fusionar lecturas pendientes de este mes
+  try {
+    const pendingList = await getPendingReadings();
+    const relevant = pendingList.filter(
+      (p) => p.storeId === storeId && p.readingDate >= startDateCurrent && p.readingDate <= endDateCurrent
+    );
+
+    for (const pending of relevant) {
+      const existingIdx = currentYearData.findIndex((r) => r.reading_date === pending.readingDate);
+      const formatted = {
+        id: pending.id,
+        store_id: pending.storeId,
+        reading_date: pending.readingDate,
+        display_value: pending.displayValue,
+        applied_multiplier: pending.multiplier,
+        kwh_reading: calculateKwh(pending.displayValue, pending.multiplier),
+        is_reset: pending.isReset,
+        calculated_consumption: null,
+        is_estimated: pending.isEstimated,
+        notes: pending.notes,
+        technician_name: pending.technicianName,
+        is_pending_sync: true,
+        _isOffline: true
+      };
+      if (existingIdx >= 0) {
+        currentYearData[existingIdx] = formatted;
+      } else {
+        currentYearData.push(formatted);
+        currentYearData.sort((a, b) => a.reading_date.localeCompare(b.reading_date));
+      }
+    }
+  } catch (e) {
+    console.warn('Error merging pending readings in comparison:', e);
+  }
+
+  return { currentYearData, prevYearData };
 }
 
 export async function saveMeterReading({
@@ -104,7 +205,8 @@ export async function saveMeterReading({
   isReset = false,
   isEstimated = false,
   notes = '',
-  technicianName = ''
+  technicianName = '',
+  _skipOfflineFallback = false
 }) {
   const todayStr = new Date().toISOString().split('T')[0];
   if (readingDate > todayStr) {
@@ -115,52 +217,125 @@ export async function saveMeterReading({
   const numMult = parseFloat(multiplier) || 1.0;
   const kwhReading = calculateKwh(numDisplay, numMult);
 
-  // Buscar lectura anterior más reciente
-  const { data: previousEntries } = await supabase
-    .from('meter_readings')
-    .select('reading_date, kwh_reading')
-    .eq('store_id', storeId)
-    .lt('reading_date', readingDate)
-    .order('reading_date', { ascending: false })
-    .limit(1);
+  // Si no hay conexión de red, guardar directamente en la cola offline de IndexedDB
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+  if (isOffline && !_skipOfflineFallback) {
+    const offlineRecord = await savePendingReading({
+      storeId,
+      readingDate,
+      displayValue: numDisplay,
+      multiplier: numMult,
+      isReset,
+      isEstimated,
+      notes,
+      technicianName
+    });
 
-  let effectiveReset = isReset;
-  let dayDiff = 1;
-
-  if (previousEntries && previousEntries[0]) {
-    const prevDate = new Date(previousEntries[0].reading_date);
-    const currDate = new Date(readingDate);
-    dayDiff = Math.max(1, Math.round((currDate - prevDate) / (1000 * 60 * 60 * 24)));
-    if (dayDiff > 4 && !isEstimated) {
-      effectiveReset = true;
-    }
+    return {
+      id: offlineRecord.id,
+      store_id: storeId,
+      reading_date: readingDate,
+      display_value: numDisplay,
+      applied_multiplier: numMult,
+      kwh_reading: kwhReading,
+      is_reset: isReset,
+      calculated_consumption: null,
+      is_estimated: isEstimated,
+      notes,
+      technician_name: technicianName,
+      _isOffline: true,
+      is_pending_sync: true
+    };
   }
 
-  const prevKwh = previousEntries && previousEntries[0] ? previousEntries[0].kwh_reading : null;
-  const calculatedConsumption = calculateConsumption(kwhReading, prevKwh, effectiveReset, dayDiff);
+  try {
+    // Buscar lectura anterior más reciente
+    const { data: previousEntries } = await supabase
+      .from('meter_readings')
+      .select('reading_date, kwh_reading')
+      .eq('store_id', storeId)
+      .lt('reading_date', readingDate)
+      .order('reading_date', { ascending: false })
+      .limit(1);
 
-  const payload = {
-    store_id: storeId,
-    reading_date: readingDate,
-    display_value: numDisplay,
-    applied_multiplier: numMult,
-    kwh_reading: kwhReading,
-    is_reset: effectiveReset,
-    calculated_consumption: calculatedConsumption,
-    is_estimated: !!isEstimated,
-    notes: notes || null,
-    technician_name: technicianName || null,
-    updated_at: new Date().toISOString()
-  };
+    let effectiveReset = isReset;
+    let dayDiff = 1;
 
-  const { data, error } = await supabase
-    .from('meter_readings')
-    .upsert(payload, { onConflict: 'store_id,reading_date' })
-    .select()
-    .single();
+    if (previousEntries && previousEntries[0]) {
+      const prevDate = new Date(previousEntries[0].reading_date);
+      const currDate = new Date(readingDate);
+      dayDiff = Math.max(1, Math.round((currDate - prevDate) / (1000 * 60 * 60 * 24)));
+      if (dayDiff > 4 && !isEstimated) {
+        effectiveReset = true;
+      }
+    }
 
-  if (error) throw error;
-  return data;
+    const prevKwh = previousEntries && previousEntries[0] ? previousEntries[0].kwh_reading : null;
+    const calculatedConsumption = calculateConsumption(kwhReading, prevKwh, effectiveReset, dayDiff);
+
+    const payload = {
+      store_id: storeId,
+      reading_date: readingDate,
+      display_value: numDisplay,
+      applied_multiplier: numMult,
+      kwh_reading: kwhReading,
+      is_reset: effectiveReset,
+      calculated_consumption: calculatedConsumption,
+      is_estimated: !!isEstimated,
+      notes: notes || null,
+      technician_name: technicianName || null,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('meter_readings')
+      .upsert(payload, { onConflict: 'store_id,reading_date' })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    // Si la llamada falló por corte de señal, guardar en IndexedDB para no perder la lectura
+    const isNetworkError =
+      (typeof navigator !== 'undefined' && !navigator.onLine) ||
+      err?.message?.includes('Failed to fetch') ||
+      err?.message?.includes('NetworkError') ||
+      err?.message?.includes('network') ||
+      err?.name === 'TypeError';
+
+    if (isNetworkError && !_skipOfflineFallback) {
+      console.warn('Fallo de red al conectar con Supabase. Guardando lectura en IndexedDB:', err);
+      const offlineRecord = await savePendingReading({
+        storeId,
+        readingDate,
+        displayValue: numDisplay,
+        multiplier: numMult,
+        isReset,
+        isEstimated,
+        notes,
+        technicianName
+      });
+
+      return {
+        id: offlineRecord.id,
+        store_id: storeId,
+        reading_date: readingDate,
+        display_value: numDisplay,
+        applied_multiplier: numMult,
+        kwh_reading: kwhReading,
+        is_reset: isReset,
+        calculated_consumption: null,
+        is_estimated: isEstimated,
+        notes,
+        technician_name: technicianName,
+        _isOffline: true,
+        is_pending_sync: true
+      };
+    }
+
+    throw err;
+  }
 }
 
 export async function deleteMeterReading(storeId, readingDate) {

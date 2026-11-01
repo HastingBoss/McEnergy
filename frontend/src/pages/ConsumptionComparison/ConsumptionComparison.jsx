@@ -579,6 +579,26 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
                         </span>
                       )}
 
+                      {/* Etiqueta Offline / Pendiente de sincronizar */}
+                      {row.currentEntry?.is_pending_sync && (
+                        <span style={{
+                          fontSize: '0.64rem',
+                          backgroundColor: 'rgba(255, 199, 44, 0.15)',
+                          color: '#FFC72C',
+                          border: '1px solid #FFC72C',
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          fontWeight: '800',
+                          letterSpacing: '0.3px',
+                          textTransform: 'uppercase',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          lineHeight: '1.2'
+                        }} title="Lectura guardada localmente en dispositivo (pendiente de sincronización)">
+                          ⏳ Offline
+                        </span>
+                      )}
+
                       {/* Indicador de anomalía */}
                       {row.isAnomaly && (
                         <span style={{
