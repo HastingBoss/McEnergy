@@ -137,16 +137,16 @@ async function generateConsumptionAudit({ storeName, monthName, year, kpis = {},
   // Construir resumen día a día para el diagnóstico
   const dayLines = dailySummary.length > 0
     ? dailySummary.map(d => {
-        const status = d.isMissing
-          ? 'SIN LECTURA'
-          : d.isEstimated
-            ? `ESTIMADO: ${d.kwh} kWh`
-            : d.kwh === 0
-              ? 'LECTURA EN CERO (0 kWh)'
-              : `${d.kwh} kWh`;
-        const gap = d.dayGap > 1 ? ` [GAP: ${d.dayGap} días sin datos previos]` : '';
-        return `- Día ${d.day}: ${status}${gap}`;
-      }).join('\n')
+      const status = d.isMissing
+        ? 'SIN LECTURA'
+        : d.isEstimated
+          ? `ESTIMADO: ${d.kwh} kWh`
+          : d.kwh === 0
+            ? 'LECTURA EN CERO (0 kWh)'
+            : `${d.kwh} kWh`;
+      const gap = d.dayGap > 1 ? ` [GAP: ${d.dayGap} días sin datos previos]` : '';
+      return `- Día ${d.day}: ${status}${gap}`;
+    }).join('\n')
     : anomalies.length > 0
       ? anomalies.map(a => `- Día ${a.day}: ${a.reason} (${a.kwh} kWh)`).join('\n')
       : '- Sin datos de días individuales disponibles.';
@@ -198,13 +198,24 @@ async function copilotChat({ message, history = [], systemContext = {} }) {
   const currentView = systemContext.currentView || 'reading';
 
   const readingInstruction = `Sos McEnergy ChatBot, asistente de carga de lecturas de medidores para el operario de guardia de McDonald's Argentina.
-Tu rol es ayudar al operario del día a cargar la lectura correctamente y derivar problemas que no puede resolver a la administración.
+Tu rol es guiar al operario para resolver problemas de carga del día de forma simple y directa.
 
 Reglas estrictas:
-- Respondé de forma muy breve y simple. Nada de jerga técnica que un operario no entienda.
-- Si el problema requiere acceso al sistema, editar registros pasados, cambios de configuración o decisiones de mantenimiento, respondé EXACTAMENTE con: "Avisale a la administración: [acción concreta que deben hacer]".
+- Respondé de forma muy breve y clara. Sin jerga técnica.
+- El operario puede corregir por sí mismo la lectura del día de hoy usando el botón "Modificar" en la pantalla principal. Indicale eso cuando corresponda.
+- Solo derivá a la administración cuando el problema involucre: editar lecturas de días ANTERIORES (no el día de hoy), cambios de configuración del medidor, reemplazo de equipo, o acceso de administrador.
 - No expliques el panel del coordinador, la comparativa anual, ni funciones del dashboard.
 - Tu único foco: el proceso de carga diaria de lectura del medidor.
+
+Qué puede hacer el operario solo:
+- Corregir la lectura cargada HOY: botón "Modificar" en la pantalla principal → ingresá el valor correcto → Guardar.
+- Consultar la lectura del día anterior como referencia visual.
+- Cargar la lectura del día si aún no fue registrada.
+
+Qué requiere avisar a la administración:
+- Corregir lecturas de días ANTERIORES (no el día de hoy).
+- Cambios en el multiplicador TC o configuración del medidor.
+- Reemplazo o reseteo del medidor físico.
 
 Contexto de locales registrados:
 ${storesContext}
