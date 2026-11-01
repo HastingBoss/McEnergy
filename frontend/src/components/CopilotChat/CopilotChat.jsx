@@ -4,6 +4,61 @@ import { Bot, X, Send, Sparkles, RefreshCw, ChevronRight } from 'lucide-react';
 import { askCopilot } from '../../services/aiService';
 import { useStore } from '../../context/StoreContext';
 
+/** Render lightweight markdown: **bold**, *italic*, numbered lists, line breaks */
+function MarkdownText({ text, isUser }) {
+  const baseColor = isUser ? '#121212' : '#E0E0E0';
+
+  const parseInline = (str, key) => {
+    const parts = [];
+    const re = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+    let last = 0, m;
+    while ((m = re.exec(str)) !== null) {
+      if (m.index > last) parts.push(str.slice(last, m.index));
+      if (m[2]) parts.push(<strong key={key + m.index} style={{ fontWeight: '800', color: isUser ? '#000' : '#FFC72C' }}>{m[2]}</strong>);
+      else if (m[3]) parts.push(<em key={key + m.index} style={{ fontStyle: 'italic' }}>{m[3]}</em>);
+      last = re.lastIndex;
+    }
+    if (last < str.length) parts.push(str.slice(last));
+    return parts;
+  };
+
+  const lines = text.split('\n');
+  const elements = [];
+  let listItems = [];
+
+  const flushList = (i) => {
+    if (listItems.length) {
+      elements.push(
+        <ol key={`list-${i}`} style={{ margin: '4px 0 4px 16px', padding: 0, color: baseColor }}>
+          {listItems.map((li, j) => <li key={j} style={{ marginBottom: '2px' }}>{li}</li>)}
+        </ol>
+      );
+      listItems = [];
+    }
+  };
+
+  lines.forEach((line, i) => {
+    const listMatch = line.match(/^(\d+)\.\s+(.*)/);
+    if (listMatch) {
+      listItems.push(parseInline(listMatch[2], `li-${i}`));
+    } else {
+      flushList(i);
+      if (line.trim() === '') {
+        elements.push(<br key={`br-${i}`} />);
+      } else {
+        elements.push(
+          <span key={`l-${i}`} style={{ display: 'block', color: baseColor }}>
+            {parseInline(line, `ln-${i}`)}
+          </span>
+        );
+      }
+    }
+  });
+  flushList(lines.length);
+
+  return <div style={{ fontSize: '0.85rem', lineHeight: '1.5', whiteSpace: 'normal' }}>{elements}</div>;
+}
+
 const QUICK_PROMPTS_READING = [
   '¿Qué hago si me olvidé de cargar días anteriores?',
   'Cargué mal el número del medidor, ¿cómo lo corrijo?',
@@ -28,7 +83,7 @@ export default function CopilotChat() {
       role: 'assistant',
       text: isReadingRoute
         ? '¡Hola! Soy McEnergy ChatBot. ¿Tenés alguna duda con la carga de lectura del medidor de hoy?'
-        : '¡Hola, Coordinador! Soy McEnergy ChatBot. Puedo ayudarte a interpretar la comparativa, anomalías, estimaciones y el diagnóstico de Auditoría IA.'
+        : '¡Hola! Soy McEnergy ChatBot. Puedo ayudarte a interpretar la comparativa, anomalías, estimaciones y el diagnóstico de Auditoría IA.'
     }
   ]);
   const [inputText, setInputText] = useState('');
@@ -215,12 +270,9 @@ export default function CopilotChat() {
                   backgroundColor: m.role === 'user' ? '#FFC72C' : '#1D1D1D',
                   color: m.role === 'user' ? '#121212' : '#FFFFFF',
                   fontWeight: m.role === 'user' ? '700' : '400',
-                  fontSize: '0.85rem',
-                  lineHeight: '1.45',
-                  border: m.role === 'user' ? 'none' : '1px solid #3A3833',
-                  whiteSpace: 'pre-wrap'
+                  border: m.role === 'user' ? 'none' : '1px solid #3A3833'
                 }}>
-                  {m.text}
+                  <MarkdownText text={m.text} isUser={m.role === 'user'} />
                 </div>
               </div>
             ))}
