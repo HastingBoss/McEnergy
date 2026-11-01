@@ -29,7 +29,7 @@ export default function SplashScreen({ isReady = true, onFinish }) {
         position: 'fixed',
         inset: 0,
         backgroundColor: '#1D1D1D',
-        zIndex: 9999,
+        zIndex: 99999,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

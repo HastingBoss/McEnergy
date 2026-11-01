@@ -73,7 +73,7 @@ const QUICK_PROMPTS_DASHBOARD = [
 
 export default function CopilotChat() {
   const location = useLocation();
-  const { stores, currentStore } = useStore();
+  const { stores, currentStore, loading } = useStore();
   const [isOpen, setIsOpen] = useState(false);
 
   const isReadingRoute = location.pathname === '/' || location.pathname === '';
@@ -134,6 +134,8 @@ export default function CopilotChat() {
       setIsTyping(false);
     }
   };
+
+  if (loading) return null;
 
   return (
     <>
