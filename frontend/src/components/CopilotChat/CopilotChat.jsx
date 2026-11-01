@@ -137,15 +137,15 @@ export default function CopilotChat() {
 
   return (
     <>
-      {/* Botón Flotante Activar Chat (elevado para no solapar botones de modales o navbar) */}
+      {/* Botón Flotante Activar Chat (posicionado sobre la barra inferior y visible incluso con modales abiertos) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           style={{
             position: 'fixed',
-            bottom: 'calc(130px + env(safe-area-inset-bottom, 0px))',
+            bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
             right: '16px',
-            zIndex: 990,
+            zIndex: 11000,
             backgroundColor: '#27251F',
             color: '#FFC72C',
             border: '2px solid #FFC72C',
@@ -168,7 +168,7 @@ export default function CopilotChat() {
         </button>
       )}
 
-      {/* Ventana de Chat (Posicionada arriba del Navbar inferior para no tapar pestañas) */}
+      {/* Ventana de Chat (Superpuesta por encima de modales y de la barra inferior) */}
       {isOpen && (
         <div style={{
           position: 'fixed',
@@ -182,7 +182,7 @@ export default function CopilotChat() {
           backgroundColor: '#27251F',
           border: '2px solid #FFC72C',
           borderRadius: '18px',
-          zIndex: 1050,
+          zIndex: 12000,
           boxShadow: '0 18px 40px rgba(0,0,0,0.92)',
           display: 'flex',
           flexDirection: 'column',
