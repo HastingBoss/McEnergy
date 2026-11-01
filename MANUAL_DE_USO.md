@@ -195,3 +195,50 @@ McEnergy integra la suite de modelos Gemini Flash (versión configurable 3.5 con
 
 **Actualmente configuradas:** A, B, E
 
+---
+
+## 7. Roadmap Técnico & Mejoras Propuestas
+
+Registro de funcionalidades y optimizaciones pendientes para futuras iteraciones de McEnergy:
+
+### 7.1 Modo Offline y Sincronización en Segundo Plano
+- **Contexto**: Salas de transformadores y subsuelos técnicos con nula cobertura 4G/WiFi.
+- **Implementación**:
+  - Almacenar temporalmente las lecturas en `IndexedDB` local cuando `navigator.onLine === false`.
+  - Registrar evento `sync` en `sw.js` para despachar automáticamente a Supabase al restablecer la red.
+  - Indicador visual de "Lectura guardada localmente (pendiente de sincronización)".
+
+### 7.2 Validación Predictiva en Pantalla de Carga (`/`)
+- **Contexto**: Evitar errores de tipeo humano antes de persistir en la base de datos.
+- **Implementación**:
+  - Al ingresar el valor del display, calcular en tiempo real el consumo proyectado del día.
+  - Si el valor resultante excede 1.5x el promedio del local, mostrar aviso preventivo:
+    > ⚠️ *El consumo resultante (X kWh) supera en un Y% el promedio diario habitual. Verificá que los dígitos ingresados coincidan con el display.*
+
+### 7.3 Proyección de Cierre de Mes (Run-rate vs Meta -3%)
+- **Contexto**: El coordinador necesita saber antes de fin de mes si el local llegará a la meta corporativa.
+- **Implementación**:
+  - Métrica calculada en el Dashboard:
+    ```js
+    const projectedTotal = totalCurrentMonth + (remainingDaysInMonth * currentDailyAvg);
+    const projectedDeltaPct = ((projectedTotal - totalPrevMonth) / totalPrevMonth) * 100;
+    ```
+  - Semáforo predictivo: Verde si proyecta `<= -3%`, Rojo si proyecta sobreconsumo.
+
+### 7.4 Recordatorio de Guardia a las 12:00 PM (Web Push Notifications)
+- **Contexto**: Reducir días sin medición generados por olvidos operativos.
+- **Implementación**:
+  - Suscripción Web Push API mediante el Service Worker.
+  - Disparo de notificación local a las 12:15 PM si el local seleccionado aún no posee registro del día de hoy.
+
+### 7.5 Exportación Excel Multi-Local Consolidada
+- **Contexto**: La descarga actual es por local individual.
+- **Implementación**:
+  - Generar un único archivo `.xlsx` con una carátula general de KPIs comparativos de toda la red (MTD, AR3, AR6, DEV, DEN) y solapas dedicadas por cada local.
+
+### 7.6 Autocompletado de Lote con Interpolación entre Extremos
+- **Contexto**: El botón *Autocompletar Faltantes* usa promedio estático.
+- **Implementación**:
+  - Priorizar interpolación lineal cuando un bloque de días faltantes tenga lecturas reales en ambos extremos, distribuyendo el consumo de manera físicamente coherente.
+
+
