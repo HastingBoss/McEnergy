@@ -24,6 +24,7 @@ import {
   getPreviousYearDate,
   fetchStoreReadings,
   fetchReadingForDate,
+  fetchStoreDailyAverage,
   saveMeterReading,
   formatWhatsAppReport
 } from '../../services/meterService';
@@ -49,6 +50,7 @@ export default function MeterReading() {
   const [todayReading, setTodayReading] = useState(null);
   const [previousReading, setPreviousReading] = useState(null);
   const [prevYearReading, setPrevYearReading] = useState(null);
+  const [storeDailyAvg, setStoreDailyAvg] = useState(0);
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
 
@@ -93,14 +95,27 @@ export default function MeterReading() {
     setAdminNotified(false);
 
     try {
-      const [readingsList, currentEntry, lastYearEntry] = await Promise.all([
-        fetchStoreReadings(currentStore.id, 7),
+      const [readingsList, currentEntry, lastYearEntry, dbAvg] = await Promise.all([
+        fetchStoreReadings(currentStore.id, 30),
         fetchReadingForDate(currentStore.id, todayStr),
-        fetchReadingForDate(currentStore.id, getPreviousYearDate(todayStr))
+        fetchReadingForDate(currentStore.id, getPreviousYearDate(todayStr)),
+        fetchStoreDailyAverage(currentStore.id, 30)
       ]);
 
       setTodayReading(currentEntry);
       setPrevYearReading(lastYearEntry);
+
+      // Calcular promedio diario habitual del local (online o fallback offline)
+      let calculatedAvg = dbAvg || 0;
+      if (calculatedAvg <= 0 && readingsList && readingsList.length > 0) {
+        const validConsumptions = readingsList
+          .filter((r) => r.calculated_consumption !== null && r.calculated_consumption > 0 && r.reading_date !== todayStr)
+          .map((r) => parseFloat(r.calculated_consumption));
+        if (validConsumptions.length > 0) {
+          calculatedAvg = Number((validConsumptions.reduce((a, b) => a + b, 0) / validConsumptions.length).toFixed(1));
+        }
+      }
+      setStoreDailyAvg(calculatedAvg);
 
       if (currentEntry) {
         setDisplayValue(String(currentEntry.display_value));
@@ -135,7 +150,24 @@ export default function MeterReading() {
 
   const numericVal = parseFloat(displayValue) || 0;
 
-  // Acción Cargar -> valida y detecta anomalías / picos elevados (> 2x día anterior)
+  // Cálculo en tiempo real del consumo proyectado del día
+  const prevKwh = previousReading ? (previousReading.kwh_reading || previousReading.display_value * multiplier) : null;
+  const currentKwh = numericVal > 0 ? (numericVal * multiplier) : null;
+  const projectedConsumption = (currentKwh !== null && prevKwh !== null)
+    ? Number((currentKwh - prevKwh).toFixed(1))
+    : null;
+
+  // Validación predictiva: advertir si el consumo proyectado excede 1.5x el promedio diario habitual
+  const isSpikeOverAverage = Boolean(
+    storeDailyAvg > 0 &&
+    projectedConsumption !== null &&
+    projectedConsumption > (storeDailyAvg * 1.5)
+  );
+  const excessPct = (isSpikeOverAverage && storeDailyAvg > 0 && projectedConsumption !== null)
+    ? Math.round(((projectedConsumption - storeDailyAvg) / storeDailyAvg) * 100)
+    : 0;
+
+  // Acción Cargar -> valida y detecta anomalías / picos elevados (> 1.5x promedio o negativo)
   const handleOpenUploadConfirm = (e) => {
     e.preventDefault();
     if (!displayValue || isNaN(numericVal) || numericVal <= 0) {
@@ -148,21 +180,22 @@ export default function MeterReading() {
       return;
     }
 
-    // Análisis de variación y detección de anomalía (más del doble del día anterior o consumo negativo)
-    const prevKwh = previousReading ? (previousReading.kwh_reading || previousReading.display_value * multiplier) : null;
-    const estKwh = numericVal * multiplier;
-    const estCons = prevKwh !== null ? (estKwh - prevKwh) : null;
+    // Análisis de variación y detección de anomalía
     const prevCons = previousReading?.calculated_consumption || 0;
-
-    const isHighSpike = estCons !== null && prevCons > 0 && estCons >= (prevCons * 2);
-    const isNegative = estCons !== null && estCons < 0;
+    const isHighSpike = projectedConsumption !== null && (
+      (storeDailyAvg > 0 && projectedConsumption > (storeDailyAvg * 1.5)) ||
+      (prevCons > 0 && projectedConsumption >= (prevCons * 2))
+    );
+    const isNegative = projectedConsumption !== null && projectedConsumption < 0;
 
     if ((isHighSpike || isNegative) && !adminNotified) {
       setShowAnomalyWarning({
         isHighSpike,
         isNegative,
-        estCons,
+        estCons: projectedConsumption,
         prevCons,
+        storeDailyAvg,
+        excessPct,
         numericVal
       });
       return;
@@ -587,14 +620,91 @@ export default function MeterReading() {
                     padding: '16px 12px',
                     minHeight: '72px',
                     backgroundColor: '#1D1D1D',
-                    border: '2px solid #FFC72C',
+                    border: isSpikeOverAverage
+                      ? '2px solid #F59E0B'
+                      : projectedConsumption !== null && projectedConsumption < 0
+                      ? '2px solid #DA291C'
+                      : '2px solid #FFC72C',
                     borderRadius: '14px',
                     color: '#FFC72C',
                     width: '100%',
-                    outline: 'none'
+                    outline: 'none',
+                    transition: 'border-color 0.2s ease'
                   }}
                 />
               </div>
+
+              {/* Indicador de cálculo en tiempo real y validación predictiva */}
+              {projectedConsumption !== null && numericVal > 0 && (
+                <div style={{ marginTop: '10px' }}>
+                  {/* Desglose de telemetría proyectada en tiempo real */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    backgroundColor: '#1D1D1D',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '0.8rem',
+                    border: '1px solid #3A3833'
+                  }}>
+                    <span style={{ color: '#A0A0A0' }}>Consumo proyectado del día:</span>
+                    <span style={{
+                      fontWeight: '800',
+                      fontFamily: 'monospace',
+                      color: projectedConsumption < 0 ? '#F87171' : isSpikeOverAverage ? '#F59E0B' : '#4ADE80'
+                    }}>
+                      {projectedConsumption > 0 ? `+${projectedConsumption} kWh` : `${projectedConsumption} kWh`}
+                    </span>
+                  </div>
+
+                  {/* ⚠️ Aviso preventivo: el consumo excede 1.5x el promedio diario habitual */}
+                  {isSpikeOverAverage && (
+                    <div style={{
+                      marginTop: '8px',
+                      backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                      border: '1.5px solid #F59E0B',
+                      borderRadius: '10px',
+                      padding: '10px 12px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      color: '#FCD34D',
+                      fontSize: '0.82rem',
+                      lineHeight: '1.4'
+                    }}>
+                      <AlertTriangle size={18} color="#F59E0B" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <span>
+                        ⚠️ El consumo resultante (<strong>{projectedConsumption} kWh</strong>) supera en un{' '}
+                        <strong>{excessPct}%</strong> el promedio diario habitual ({storeDailyAvg} kWh). Verificá que los dígitos ingresados coincidan con el display.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Aviso si la lectura es menor al día anterior (consumo negativo) */}
+                  {projectedConsumption < 0 && (
+                    <div style={{
+                      marginTop: '8px',
+                      backgroundColor: 'rgba(218, 41, 28, 0.12)',
+                      border: '1.5px solid #DA291C',
+                      borderRadius: '10px',
+                      padding: '10px 12px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      color: '#FCA5A5',
+                      fontSize: '0.82rem',
+                      lineHeight: '1.4'
+                    }}>
+                      <AlertTriangle size={18} color="#DA291C" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <span>
+                        ⚠️ La lectura ingresada es menor a la del día anterior ({previousReading?.display_value}), generando consumo negativo ({projectedConsumption} kWh). Verificá los números físicos.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <span style={{ fontSize: '0.78rem', color: '#A0A0A0', display: 'block', marginTop: '8px', textAlign: 'center' }}>
                 Ingresa únicamente los números visibles en la pantalla física
               </span>
@@ -660,6 +770,11 @@ export default function MeterReading() {
           <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#FFC72C', fontFamily: 'monospace' }}>
             {previousReading ? previousReading.display_value : 'Sin registro previo'}
           </span>
+          {storeDailyAvg > 0 && (
+            <span style={{ fontSize: '0.74rem', color: '#A0A0A0', display: 'block', marginTop: '2px' }}>
+              Promedio habitual: <strong style={{ color: '#E0E0E0' }}>{storeDailyAvg} kWh/día</strong>
+            </span>
+          )}
         </div>
       </div>
 
@@ -800,8 +915,14 @@ export default function MeterReading() {
               {showAnomalyWarning.isHighSpike ? (
                 <>
                   El valor ingresado arroja un consumo estimado de{' '}
-                  <strong style={{ color: '#FFC72C' }}>{showAnomalyWarning.estCons.toFixed(1)} kWh</strong>,
-                  lo que supera el doble del consumo del día anterior ({showAnomalyWarning.prevCons.toFixed(1)} kWh).
+                  <strong style={{ color: '#FFC72C' }}>{showAnomalyWarning.estCons.toFixed(1)} kWh</strong>
+                  {showAnomalyWarning.storeDailyAvg > 0 ? (
+                    <>, lo que supera en un <strong style={{ color: '#F87171' }}>{showAnomalyWarning.excessPct}%</strong> el promedio diario habitual ({showAnomalyWarning.storeDailyAvg} kWh).</>
+                  ) : (
+                    <>, lo que supera el doble del consumo del día anterior ({showAnomalyWarning.prevCons.toFixed(1)} kWh).</>
+                  )}
+                  <br /><br />
+                  Verificá que los dígitos ingresados coincidan con el display físico antes de confirmar.
                 </>
               ) : (
                 <>

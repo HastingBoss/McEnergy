@@ -73,6 +73,27 @@ export async function fetchReadingForDate(storeId, dateString) {
   return null;
 }
 
+export async function fetchStoreDailyAverage(storeId, days = 30) {
+  try {
+    const { data, error } = await supabase
+      .from('meter_readings')
+      .select('calculated_consumption')
+      .eq('store_id', storeId)
+      .not('calculated_consumption', 'is', null)
+      .gt('calculated_consumption', 0)
+      .order('reading_date', { ascending: false })
+      .limit(days);
+
+    if (error) throw error;
+    if (!data || data.length === 0) return 0;
+    const total = data.reduce((acc, row) => acc + (parseFloat(row.calculated_consumption) || 0), 0);
+    return Number((total / data.length).toFixed(1));
+  } catch (err) {
+    console.warn('Error fetching store daily average:', err);
+    return 0;
+  }
+}
+
 export async function fetchStoreReadings(storeId, limit = 14) {
   let list = [];
   try {

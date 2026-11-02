@@ -208,12 +208,12 @@ Registro de funcionalidades y optimizaciones pendientes para futuras iteraciones
   - Registrar evento `sync` en `sw.js` para despachar automáticamente a Supabase al restablecer la red.
   - Indicador visual de "Lectura guardada localmente (pendiente de sincronización)".
 
-### 7.2 Validación Predictiva en Pantalla de Carga (`/`)
+### 7.2 Validación Predictiva en Pantalla de Carga (`/`) *(Implementado)*
 - **Contexto**: Evitar errores de tipeo humano antes de persistir en la base de datos.
 - **Implementación**:
-  - Al ingresar el valor del display, calcular en tiempo real el consumo proyectado del día.
-  - Si el valor resultante excede 1.5x el promedio del local, mostrar aviso preventivo:
-    > ⚠️ *El consumo resultante (X kWh) supera en un Y% el promedio diario habitual. Verificá que los dígitos ingresados coincidan con el display.*
+  - Al ingresar el valor del display, calcular en tiempo real el consumo proyectado del día frente a la lectura previa.
+  - Si el valor resultante excede 1.5x el promedio habitual del local (o es negativo), muestra aviso preventivo en tiempo real y en modal de confirmación:
+    > ⚠️ *El consumo resultante (X kWh) supera en un Y% el promedio diario habitual (Z kWh). Verificá que los dígitos ingresados coincidan con el display.*
 
 ### 7.3 Proyección de Cierre de Mes (Run-rate vs Meta -3%)
 - **Contexto**: El coordinador necesita saber antes de fin de mes si el local llegará a la meta corporativa.
