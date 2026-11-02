@@ -8,11 +8,16 @@ Guía de referencia técnica y operativa para técnicos de guardia y coordinador
 
 La pantalla principal (`/`) está optimizada para ser a prueba de fallos, ágil y utilizar únicamente los valores visibles en el display físico del medidor.
 
-### 1.1 Flujo Diario de Carga (12:00 PM)
+### 1.1 Flujo Diario de Carga
+- **Horarios de guardia según local**:
+  - `AR3`, `AR6` y `DEV`: **10:00 AM**
+  - `MTD` y `DEN`: **12:00 PM**
+- **Recordatorios Automáticos Web Push**: Si la lectura no fue registrada en el día, el sistema emite una notificación a las **10:15 AM** o **12:15 PM** según el local activo.
 1. **Seleccionar Local**: En el desplegable superior, elegí el local correspondiente (`MTD`, `AR3`, `AR6`, `DEN` o `DEV`).
-2. **Consultar la Referencia Anterior**: En la tarjeta inferior podés ver la *Lectura día anterior* (muestra el valor exacto cargado el día previo como guía visual).
+2. **Consultar la Referencia Anterior**: En la tarjeta inferior podés ver la *Lectura día anterior* y el *Promedio habitual (kWh/día)* como guía técnica.
 3. **Ingresar la Lectura del Display**:
    - Tipeá únicamente los números que ves en la pantalla del medidor (admite números enteros y coma/punto decimal).
+   - **Validación predictiva**: Si el consumo resultante excede 1.5x el promedio del local, verás un aviso preventivo en tiempo real antes de confirmar.
    - **Nota técnica**: No multipliques por el factor TC; el sistema aplica el multiplicador internamente en la base de datos.
 4. **Presionar "Cargar"**: Aparecerá un cuadro de confirmación con el valor ingresado en grande para evitar errores de tipeo.
 5. **Confirmar**: El registro se guardará en la base de datos de inmediato.
@@ -30,6 +35,16 @@ La pantalla principal (`/`) está optimizada para ser a prueba de fallos, ágil 
 📅 Fecha: 14/10/2026 (12:00 PM)
 🔢 Display: 27646.2
 ```
+
+### 1.4 Validación Predictiva en Tiempo Real
+- Al ingresar el valor del medidor, el sistema proyecta en vivo el consumo resultante frente a la lectura previa.
+- Si el consumo calculado supera en más del 50% (1.5x) el promedio histórico del local, el campo se resalta en ámbar y muestra el porcentaje de exceso exacto para verificar antes de guardar.
+- Si la lectura ingresada fuera menor a la previa (consumo negativo), alerta en rojo advirtiendo verificar los dígitos o marcar lectura base por recambio de medidor.
+
+### 1.5 Modo Offline y Sincronización en Segundo Plano
+- Diseñado para subsuelos y salas de transformadores sin conectividad 4G o WiFi.
+- Las lecturas cargadas sin señal se guardan de forma segura en `IndexedDB` local con etiqueta visual de estado pendiente.
+- Al restablecerse la conexión, el Service Worker y el sincronizador automático despachan las lecturas a Supabase sin intervención del operario.
 
 ---
 
@@ -201,45 +216,15 @@ McEnergy integra la suite de modelos Gemini Flash (versión configurable 3.5 con
 
 Registro de funcionalidades y optimizaciones pendientes para futuras iteraciones de McEnergy:
 
-### 7.1 Modo Offline y Sincronización en Segundo Plano
-- **Contexto**: Salas de transformadores y subsuelos técnicos con nula cobertura 4G/WiFi.
+### 7.1 Proyección de Cierre de Mes (Run-rate vs Meta -3%)
+- **Contexto**: El coordinador necesita saber antes de fin de mes si el local llegará a la meta corporativa de ahorro energético (-3% vs 2025).
 - **Implementación**:
-  - Almacenar temporalmente las lecturas en `IndexedDB` local cuando `navigator.onLine === false`.
-  - Registrar evento `sync` en `sw.js` para despachar automáticamente a Supabase al restablecer la red.
-  - Indicador visual de "Lectura guardada localmente (pendiente de sincronización)".
-
-### 7.2 Validación Predictiva en Pantalla de Carga (`/`) *(Implementado)*
-- **Contexto**: Evitar errores de tipeo humano antes de persistir en la base de datos.
-- **Implementación**:
-  - Al ingresar el valor del display, calcular en tiempo real el consumo proyectado del día frente a la lectura previa.
-  - Si el valor resultante excede 1.5x el promedio habitual del local (o es negativo), muestra aviso preventivo en tiempo real y en modal de confirmación:
-    > ⚠️ *El consumo resultante (X kWh) supera en un Y% el promedio diario habitual (Z kWh). Verificá que los dígitos ingresados coincidan con el display.*
-
-### 7.3 Proyección de Cierre de Mes (Run-rate vs Meta -3%)
-- **Contexto**: El coordinador necesita saber antes de fin de mes si el local llegará a la meta corporativa.
-- **Implementación**:
-  - Métrica calculada en el Dashboard:
+  - Métrica predictiva calculada en el Dashboard:
     ```js
     const projectedTotal = totalCurrentMonth + (remainingDaysInMonth * currentDailyAvg);
     const projectedDeltaPct = ((projectedTotal - totalPrevMonth) / totalPrevMonth) * 100;
     ```
   - Semáforo predictivo: Verde si proyecta `<= -3%`, Rojo si proyecta sobreconsumo.
 
-### 7.4 Recordatorio de Guardia a las 10:00 AM (AR3, AR6, DEV) y 12:00 PM (Resto) (Web Push Notifications) *(Implementado)*
-- **Contexto**: Reducir días sin medición generados por olvidos operativos.
-- **Implementación**:
-  - Suscripción Web Push API y control de permisos nativos en el Service Worker (`sw.js`).
-  - Disparo de notificación local y push a las 10:15 AM para locales `AR3`, `AR6` y `DEV` (guardia 10:00 AM) y a las 12:15 PM para el resto (guardia 12:00 PM) si el local no posee registro del día actual.
-  - Indicador visual y botón de activación en el HUD de carga (`/`).
-
-### 7.5 Exportación Excel Multi-Local Consolidada
-- **Contexto**: La descarga actual es por local individual.
-- **Implementación**:
-  - Generar un único archivo `.xlsx` con una carátula general de KPIs comparativos de toda la red (MTD, AR3, AR6, DEV, DEN) y solapas dedicadas por cada local.
-
-### 7.6 Autocompletado de Lote con Interpolación entre Extremos
-- **Contexto**: El botón *Autocompletar Faltantes* usa promedio estático.
-- **Implementación**:
-  - Priorizar interpolación lineal cuando un bloque de días faltantes tenga lecturas reales en ambos extremos, distribuyendo el consumo de manera físicamente coherente.
 
 
