@@ -190,3 +190,4 @@ export async function syncAllPendingReadings(saveFunction) {
 export function isCurrentlySyncing() {
   return isSyncing;
 }
+

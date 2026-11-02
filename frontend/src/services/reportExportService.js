@@ -129,12 +129,14 @@ export function processStoreMonthlySeries(store, year, month, currentMonthReadin
  */
 export async function fetchFullReportData(year, month) {
   const padMonth = String(month).padStart(2, '0');
+  const lastDayCurrent = new Date(year, month, 0).getDate();
   const startDateCurrent = `${year}-${padMonth}-01`;
-  const endDateCurrent = `${year}-${padMonth}-31`;
+  const endDateCurrent = `${year}-${padMonth}-${String(lastDayCurrent).padStart(2, '0')}`;
 
   const prevYear = year - 1;
+  const lastDayPrev = new Date(prevYear, month, 0).getDate();
   const startDatePrev = `${prevYear}-${padMonth}-01`;
-  const endDatePrev = `${prevYear}-${padMonth}-31`;
+  const endDatePrev = `${prevYear}-${padMonth}-${String(lastDayPrev).padStart(2, '0')}`;
 
   // 1. Obtener locales
   const { data: stores, error: storesError } = await supabase
