@@ -225,11 +225,12 @@ Registro de funcionalidades y optimizaciones pendientes para futuras iteraciones
     ```
   - Semáforo predictivo: Verde si proyecta `<= -3%`, Rojo si proyecta sobreconsumo.
 
-### 7.4 Recordatorio de Guardia a las 12:00 PM (Web Push Notifications)
+### 7.4 Recordatorio de Guardia a las 10:00 AM (AR3, AR6, DEV) y 12:00 PM (Resto) (Web Push Notifications) *(Implementado)*
 - **Contexto**: Reducir días sin medición generados por olvidos operativos.
 - **Implementación**:
-  - Suscripción Web Push API mediante el Service Worker.
-  - Disparo de notificación local a las 12:15 PM si el local seleccionado aún no posee registro del día de hoy.
+  - Suscripción Web Push API y control de permisos nativos en el Service Worker (`sw.js`).
+  - Disparo de notificación local y push a las 10:15 AM para locales `AR3`, `AR6` y `DEV` (guardia 10:00 AM) y a las 12:15 PM para el resto (guardia 12:00 PM) si el local no posee registro del día actual.
+  - Indicador visual y botón de activación en el HUD de carga (`/`).
 
 ### 7.5 Exportación Excel Multi-Local Consolidada
 - **Contexto**: La descarga actual es por local individual.

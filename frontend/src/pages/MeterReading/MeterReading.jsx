@@ -13,7 +13,9 @@ import {
   Sparkles,
   Wifi,
   WifiOff,
-  RefreshCw
+  RefreshCw,
+  Bell,
+  BellRing
 } from 'lucide-react';
 import MeterOcrModal from '../../components/MeterOcrModal/MeterOcrModal';
 import AppFooter from '../../components/AppFooter/AppFooter';
@@ -34,6 +36,13 @@ import {
   syncAllPendingReadings,
   isCurrentlySyncing
 } from '../../services/offlineSyncService';
+import {
+  getStoreGuardSchedule,
+  getNotificationPermission,
+  requestNotificationPermission,
+  checkAndTriggerGuardReminder,
+  dispatchGuardReminder
+} from '../../services/notificationService';
 
 export default function MeterReading() {
   const { stores, currentStore, setCurrentStore } = useStore();
@@ -59,7 +68,41 @@ export default function MeterReading() {
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Notificaciones y cronograma de guardia por local (10:00 AM para AR3/AR6/DEV, 12:00 PM para resto)
+  const guardSchedule = getStoreGuardSchedule(currentStore?.code);
+  const [notifPermission, setNotifPermission] = useState(getNotificationPermission());
+
   const multiplier = currentStore?.meter_multiplier || 1.0;
+
+  // Monitoreo de recordatorios de guardia y Web Push
+  useEffect(() => {
+    if (!currentStore?.id) return;
+
+    checkAndTriggerGuardReminder(currentStore, todayReading);
+
+    const timer = setInterval(() => {
+      checkAndTriggerGuardReminder(currentStore, todayReading);
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, [currentStore?.id, currentStore?.code, todayReading?.display_value]);
+
+  const handleEnableNotifications = async () => {
+    const res = await requestNotificationPermission();
+    setNotifPermission(res);
+    if (res === 'granted') {
+      setStatusMessage({
+        type: 'success',
+        text: `✓ Notificaciones activadas: recibirás aviso a las ${guardSchedule.reminderTimeStr} si la lectura de hoy no está cargada.`
+      });
+      await dispatchGuardReminder(currentStore, guardSchedule, true);
+    } else if (res === 'denied') {
+      setStatusMessage({
+        type: 'error',
+        text: 'Las notificaciones fueron bloqueadas en el navegador. Habilítalas desde la configuración de tu dispositivo.'
+      });
+    }
+  };
 
   useEffect(() => {
     const updateSyncStatus = async () => {
@@ -448,9 +491,51 @@ export default function MeterReading() {
         {/* Cabecera del HUD */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #3A3833', paddingBottom: '12px' }}>
           <div>
-            <span style={{ fontSize: '0.72rem', color: '#FFC72C', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>
-              REGISTRO DIARIO (12:00 PM)
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.72rem', color: '#FFC72C', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>
+                REGISTRO DIARIO ({guardSchedule.guardHourStr})
+              </span>
+              {notifPermission === 'granted' ? (
+                <span
+                  title={`Recordatorio automático programado a las ${guardSchedule.reminderTimeStr} si no hay carga`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '0.68rem',
+                    color: '#86EFAC',
+                    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                    border: '1px solid #22c55e',
+                    borderRadius: '6px',
+                    padding: '2px 6px',
+                    fontWeight: '700'
+                  }}
+                >
+                  <BellRing size={11} /> {guardSchedule.reminderTimeStr}
+                </span>
+              ) : notifPermission !== 'unsupported' && (
+                <button
+                  type="button"
+                  onClick={handleEnableNotifications}
+                  title="Activar recordatorios de guardia"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '0.68rem',
+                    color: '#FCD34D',
+                    backgroundColor: 'rgba(255, 199, 44, 0.1)',
+                    border: '1px solid #FFC72C',
+                    borderRadius: '6px',
+                    padding: '2px 6px',
+                    fontWeight: '800',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Bell size={11} /> Activar {guardSchedule.reminderTimeStr}
+                </button>
+              )}
+            </div>
             <div style={{ fontSize: '1.05rem', fontWeight: '900', color: '#FFFFFF', marginTop: '2px' }}>
               {currentStore?.name}
             </div>
