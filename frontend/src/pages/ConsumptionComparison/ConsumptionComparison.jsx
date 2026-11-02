@@ -12,7 +12,8 @@ import {
   Sparkles,
   AlertTriangle,
   CheckCircle2,
-  Clock
+  Clock,
+  Target
 } from 'lucide-react';
 import { useStore } from '../../context/StoreContext';
 import { fetchMonthlyComparison } from '../../services/meterService';
@@ -158,6 +159,21 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
 
   const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === (now.getMonth() + 1);
   const isPastMonth = selectedYear < now.getFullYear() || (selectedYear === now.getFullYear() && selectedMonth < (now.getMonth() + 1));
+
+  // Proyección de Cierre de Mes (Run-rate vs Meta Corporativa -3%)
+  const remainingDaysInMonth = isCurrentMonth
+    ? Math.max(0, daysInMonth - currentDaysReported)
+    : 0;
+  const currentDailyAvgNum = parseFloat(currentDailyAvg) || 0;
+  const projectedTotal = isCurrentMonth
+    ? totalCurrentMonth + (remainingDaysInMonth * currentDailyAvgNum)
+    : totalCurrentMonth;
+  const projectedDelta = totalPrevMonth > 0 ? (projectedTotal - totalPrevMonth) : 0;
+  const projectedDeltaPct = totalPrevMonth > 0
+    ? Number(((projectedDelta / totalPrevMonth) * 100).toFixed(1))
+    : 0;
+  const isProjectedGoalMet = totalPrevMonth > 0 && projectedDeltaPct <= -3.0;
+  const isProjectedSaving = totalPrevMonth > 0 && projectedDeltaPct <= 0;
 
   // Cantidad de días faltantes pasados (hasta ayer)
   const missingPastDaysCount = comparisonRows.filter(
@@ -485,6 +501,58 @@ export default function ConsumptionComparison({ isEmbedded = false }) {
           </div>
           <div style={{ fontSize: '0.75rem', color: '#A0A0A0', marginTop: '2px' }}>
             {totalPrevMonth > 0 ? `${netDiff > 0 ? '+' : ''}${netDiffPct}% vs mismo período` : 'Requiere datos del año pasado'}
+          </div>
+        </div>
+
+        {/* Proyección Cierre de Mes (Run-rate vs Meta -3%) */}
+        <div className="card" style={{
+          borderLeft: totalPrevMonth > 0
+            ? (isProjectedGoalMet ? '4px solid #22c55e' : isProjectedSaving ? '4px solid #F59E0B' : '4px solid #ef4444')
+            : '4px solid #6b7280'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', color: '#888888', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Target size={13} color="#FFC72C" />
+              Proyección Cierre {MONTH_NAMES[selectedMonth - 1]}
+            </span>
+            {isCurrentMonth && (
+              <span style={{
+                fontSize: '0.65rem',
+                backgroundColor: '#1D1D1D',
+                border: '1px solid #3A3833',
+                color: '#FFC72C',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                fontWeight: '700'
+              }}>
+                Run-rate
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: '1.45rem', fontWeight: '800', color: '#FFFFFF', marginTop: '4px' }}>
+            {projectedTotal.toLocaleString('es-AR', { maximumFractionDigits: 1 })}{' '}
+            <span style={{ fontSize: '0.85rem', color: '#A0A0A0' }}>kWh</span>
+          </div>
+          <div style={{ fontSize: '0.75rem', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            {totalPrevMonth > 0 ? (
+              isProjectedGoalMet ? (
+                <span style={{ color: '#4ade80', fontWeight: '700' }}>
+                  🟢 Cumple meta: {projectedDeltaPct}% (≤ -3%)
+                </span>
+              ) : isProjectedSaving ? (
+                <span style={{ color: '#FCD34D', fontWeight: '700' }}>
+                  🟡 Ahorro: {projectedDeltaPct}% (meta: -3%)
+                </span>
+              ) : (
+                <span style={{ color: '#f87171', fontWeight: '700' }}>
+                  🔴 Sobreconsumo: +{projectedDeltaPct}% vs {selectedYear - 1}
+                </span>
+              )
+            ) : (
+              <span style={{ color: '#A0A0A0' }}>
+                {isCurrentMonth ? `${remainingDaysInMonth} días proyectados a ${currentDailyAvg} kWh/día` : 'Mes cerrado'}
+              </span>
+            )}
           </div>
         </div>
       </div>

@@ -75,6 +75,7 @@ Análisis de evolución temporal por local:
   - Acumulado del año en curso vs acumulado del año anterior.
   - Promedio diario de consumo real.
   - Variación interanual consolidada.
+  - **Proyección Cierre de Mes (Run-rate)**: Semáforo predictivo inteligente que proyecta el cierre mensual combinando los días ya transcurridos con los días restantes a promedio diario, evaluando en tiempo real si se cumple la meta corporativa de ahorro (≤ -3%).
 - **Detalle Diario (Días 1 al 31)**:
   - Fila por fila con el consumo diario en kWh de 2026 en amarillo y 2025 en celeste.
   - Diferencia y porcentaje de variación día a día.
@@ -175,56 +176,31 @@ McEnergy integra la suite de modelos Gemini Flash (versión configurable 3.5 con
 
 ---
 
-## 6. Preguntas Frecuentes del ChatBot (Opciones para elegir)
+## 6. Preguntas Frecuentes del ChatBot (Atajos Rápidos)
 
-> **Nota coordinador:** Las preguntas frecuentes del ChatBot se adaptan según la pantalla activa.
-> Elegí de las listas de abajo cuáles querés dejar visibles en cada vista. Avisame cuáles mantener.
+El asistente inteligente McEnergy adapta automáticamente sus atajos rápidos según la pantalla activa:
 
-### 6.1 Opciones — Vista Lectura (pantalla del operario `/`)
+### 6.1 Atajos en Pantalla de Carga (`/`)
+1. **¿Qué hago si me olvidé de cargar días anteriores?** — Explica cómo proceder y cuándo el sistema marca lectura base o permite estimar.
+2. **Cargué mal el número del medidor, ¿cómo lo corrijo?** — Detalla el uso del botón *Modificar* para corregir lecturas ya ingresadas en el día.
+3. **¿Qué número debo ingresar del display?** — Recuerda ingresar exclusivamente los dígitos visibles en la pantalla física sin aplicar factores TC manuales.
 
-| # | Pregunta propuesta |
-|---|---|
-| A | ¿Qué hago si me olvidé de cargar días anteriores? |
-| B | Cargué mal el número del medidor, ¿cómo lo corrijo? |
-| C | El medidor físico se cambió o se rompió |
-| D | ¿A qué hora tengo que cargar la lectura? |
-| E | ¿Qué número debo ingresar del display? |
-| F | No encuentro mi local en la lista, ¿qué hago? |
-
-**Actualmente configuradas:** A, B, E
+### 6.2 Atajos en Panel de Coordinación (`/dashboard`)
+1. **¿Por qué un día aparece con alerta de Revisar?** — Explica las causales de desvío (consumo en 0 kWh sin reset o saltos atípicos mayores al promedio).
+2. **¿Qué significa que un día tenga consumo estimado?** — Detalla la etiqueta `[Est]` y los métodos de proyección (interpolación lineal vs promedio).
+3. **¿Cómo uso la Auditoría IA?** — Guía paso a paso sobre el diagnóstico mensual con Gemini Flash y la generación de recomendaciones técnicas.
 
 ---
 
-### 6.2 Opciones — Vista Dashboard (pantalla del coordinador `/dashboard`)
+## 7. Estado de Funcionalidades & Arquitectura
 
-| # | Pregunta propuesta |
-|---|---|
-| A | ¿Por qué un día aparece con alerta de Revisar? |
-| B | ¿Cómo funciona la estimación automática de días faltantes? |
-| C | ¿Qué significa que un día tenga consumo estimado? |
-| D | ¿Qué es el factor multiplicador TC y cómo afecta el consumo? |
-| E | ¿Cómo uso la Auditoría IA? |
-| F | ¿Qué significa la variación interanual en la comparativa? |
-| G | ¿Cómo importo lecturas desde un mensaje de WhatsApp? |
-| H | ¿Qué hago si un local tiene el medidor reseteado a cero? |
-
-**Actualmente configuradas:** A, B, E
-
----
-
-## 7. Roadmap Técnico & Mejoras Propuestas
-
-Registro de funcionalidades y optimizaciones pendientes para futuras iteraciones de McEnergy:
-
-### 7.1 Proyección de Cierre de Mes (Run-rate vs Meta -3%)
-- **Contexto**: El coordinador necesita saber antes de fin de mes si el local llegará a la meta corporativa de ahorro energético (-3% vs 2025).
-- **Implementación**:
-  - Métrica predictiva calculada en el Dashboard:
-    ```js
-    const projectedTotal = totalCurrentMonth + (remainingDaysInMonth * currentDailyAvg);
-    const projectedDeltaPct = ((projectedTotal - totalPrevMonth) / totalPrevMonth) * 100;
-    ```
-  - Semáforo predictivo: Verde si proyecta `<= -3%`, Rojo si proyecta sobreconsumo.
+Todas las funcionalidades clave del ciclo operativo 2026 se encuentran implementadas y activas en producción:
+- ✅ **Modo Offline & Sync en Segundo Plano**: Almacenamiento local en IndexedDB y sincronización transparente al reconectar red.
+- ✅ **Validación Predictiva Antierrores**: Cálculo en tiempo real con alerta si la lectura excede 1.5x el promedio diario o resulta en consumo negativo.
+- ✅ **Recordatorios Web Push**: Disparo programado a las 10:15 AM (AR3, AR6, DEV) y 12:15 PM (MTD, DEN) si la lectura del día sigue pendiente.
+- ✅ **Proyección de Cierre de Mes (Run-rate)**: Semáforo predictivo inteligente que evalúa el cumplimiento de la meta corporativa (-3% de ahorro interanual).
+- ✅ **Exportación Ejecutiva Excel (.xlsx)**: Cuadro de mando de la red consolidada con auditoría de omisiones y semáforo corporativo.
+- ✅ **Auditoría e Inteligencia Artificial**: OCR de medidores con Gemini Vision y diagnóstico técnico de mantenimiento con Gemini Flash.
 
 
 
